@@ -7,9 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 :root { --ease: cubic-bezier(.4,0,.2,1); }
 
 [data-theme="dark"] {
@@ -27,81 +25,48 @@
 }
 
 [data-theme="light"] {
-  --bg:          #f2dcb1;
-  --line:        rgba(0,0,0,0.15);
-  --text:        #2e2820;
-  --inp-text:    #2e2820;
-  --muted:       rgba(46,40,32,0.5);
-  --placeholder: rgba(46,40,32,0.32);
-  --faint:       rgba(46,40,32,0.35);
-  --ok:          #4a7c5a;
-  --err:         #8f3f3f;
-  --corner:      rgba(46,40,32,0.22);
-  --cursor-bg:   #2e2820;
+  --bg:          #87CEEB;
+  --line:        rgba(26, 43, 60, 0.1);
+  --text:        #1a2b3c; /* Колір глибокої тіні хмари */
+  --inp-text:    #0a1a2a; /* Майже чорний синій для вводу */
+  --muted:       rgba(26, 43, 60, 0.5);
+  --placeholder: rgba(26, 43, 60, 0.35);
+  --faint:       rgba(26, 43, 60, 0.4);
+  --ok:          #2d5a3c;
+  --err:         #a63d3d;
+  --corner:      rgba(26, 43, 60, 0.2);
+  --cursor-bg:   #1a2b3c;
 }
 
-/* ── stars canvas ── */
-#starfield {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  pointer-events: none;
-  z-index: 0;
-  transition: opacity .8s var(--ease);
-}
-[data-theme="light"] #starfield { opacity: 0; }
+#bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
 
-/* ── cursor ── */
 html, body, *, *::before, *::after { cursor: none !important; }
-
 #cur {
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--cursor-bg);
-  position: fixed;
-  pointer-events: none;
-  z-index: 9999;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--cursor-bg); position: fixed;
+  pointer-events: none; z-index: 9999;
   transform: translate(-50%, -50%);
   transition: width .18s var(--ease), height .18s var(--ease), background .35s;
 }
 #cur.hover { width: 13px; height: 13px; }
 
-html {
-  height: 100%;
-  background: var(--bg);
-  transition: background .35s var(--ease);
-}
+html { height: 100%; background: var(--bg); transition: background 0.8s var(--ease); }
 
 body {
-  min-height: 100vh;
-  font-family: 'Geist', 'Helvetica Neue', sans-serif;
-  color: var(--text);
-  display: flex;
-  flex-direction: column;
-  transition: color .35s var(--ease);
-  user-select: none;
-  position: relative;
+  min-height: 100vh; font-family: 'Geist', sans-serif;
+  color: var(--text); display: flex; flex-direction: column;
+  transition: color .35s var(--ease); user-select: none;
 }
 
-/* ── theme button ── */
-.top-bar {
-  position: fixed;
-  top: 18px; right: 24px;
-  z-index: 50;
-}
-
+.top-bar { position: fixed; top: 18px; right: 24px; z-index: 50; }
 .theme-btn {
-  width: 32px; height: 32px;
-  border: none; background: none;
-  color: var(--muted);
-  display: flex; align-items: center; justify-content: center;
-  transition: color .2s;
-  position: relative;
+  width: 32px; height: 32px; border: none; background: none;
+  color: var(--muted); display: flex; align-items: center; justify-content: center;
+  transition: color .2s; position: relative;
 }
 .theme-btn:hover { color: var(--text); }
 .theme-btn svg {
-  width: 14px; height: 14px;
-  position: absolute;
+  width: 14px; height: 14px; position: absolute;
   transition: opacity .2s, transform .2s var(--ease);
 }
 .icon-moon { opacity: 1; transform: rotate(0deg); }
@@ -109,418 +74,172 @@ body {
 [data-theme="light"] .icon-moon { opacity: 0; transform: rotate(45deg); }
 [data-theme="light"] .icon-sun  { opacity: 1; transform: rotate(0deg); }
 
-/* ── main ── */
-main {
-  flex: 1;
-  display: flex; align-items: center; justify-content: center;
-  padding: 48px 24px;
-  position: relative;
-  z-index: 1;
-}
+main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 48px 24px; position: relative; z-index: 1; }
+.wrap { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 20px; animation: up .5s var(--ease) both; }
+@keyframes up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
-.wrap {
-  width: 100%; max-width: 800px;
-  display: flex; flex-direction: column;
-  gap: 20px;
-  animation: up .5s var(--ease) both;
-}
-
-@keyframes up {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── status dot ── */
-.status-row {
-  height: 14px;
-  display: flex; align-items: center;
-}
-
-.dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: transparent;
-  transition: background .2s;
-  flex-shrink: 0;
-}
-.dot.ok  { background: var(--ok); }
+.status-row { height: 14px; display: flex; align-items: center; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: transparent; transition: background .2s; }
+.dot.ok { background: var(--ok); }
 .dot.err { background: var(--err); }
 
-/* ── input area ── */
 .inp-area { position: relative; }
-
 .inp-area::before {
-  content: '';
-  position: absolute;
-  left: 0; bottom: 0;
-  width: 12px; height: 12px;
-  border-left: 1px solid var(--corner);
-  border-bottom: 1px solid var(--corner);
-  border-bottom-left-radius: 4px;
-  pointer-events: none;
-  transition: border-color .35s;
+  content: ''; position: absolute; left: 0; bottom: 0; width: 12px; height: 12px;
+  border-left: 1px solid var(--corner); border-bottom: 1px solid var(--corner);
+  border-bottom-left-radius: 4px; pointer-events: none; transition: border-color .35s;
 }
 
 input {
-  width: 100%;
-  height: 44px;
-  background: transparent;
-  border: none;
-  padding: 0 48px 8px 16px;
-  font-family: 'Geist Mono', monospace;
-  font-size: 14px;
-  font-weight: 300;
-  color: var(--inp-text);
-  outline: none;
-  letter-spacing: .02em;
-  transition: color .35s;
+  width: 100%; height: 44px; background: transparent; border: none;
+  padding: 0 48px 8px 16px; font-family: 'Geist Mono', monospace;
+  font-size: 14px; font-weight: 300; color: var(--inp-text);
+  outline: none; letter-spacing: .02em; transition: color .35s;
   user-select: text;
 }
 input::placeholder { color: var(--placeholder); }
 
 #clr {
-  position: absolute; right: 0; top: 50%;
-  transform: translateY(-60%);
-  background: none; border: none;
-  color: var(--muted);
-  display: none; align-items: center; justify-content: center;
-  width: 36px; height: 36px;
-  transition: color .15s;
+  position: absolute; right: 0; top: 50%; transform: translateY(-60%);
+  background: none; border: none; color: var(--muted);
+  display: none; align-items: center; justify-content: center; width: 36px; height: 36px;
+  font-family: 'Geist Mono', monospace; font-size: 16px;
 }
 #clr.on { display: flex; }
 #clr:hover { color: var(--text); }
-#clr svg { width: 9px; height: 9px; }
 
-/* ── player ── */
-.player-outer {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16/9;
-}
+.player-outer { position: relative; width: 100%; aspect-ratio: 16/9; }
+.player-outer::before { content: ''; position: absolute; top: 0; right: 0; width: 16px; height: 16px; border-top: 1px solid var(--corner); border-right: 1px solid var(--corner); border-top-right-radius: 4px; z-index: 2; transition: border-color .35s; }
+.player-outer::after { content: ''; position: absolute; bottom: 0; left: 0; width: 16px; height: 16px; border-bottom: 1px solid var(--corner); border-left: 1px solid var(--corner); border-bottom-left-radius: 4px; z-index: 2; transition: border-color .35s; }
 
-.player-outer::before {
-  content: '';
-  position: absolute;
-  top: 0; right: 0;
-  width: 16px; height: 16px;
-  border-top: 1px solid var(--corner);
-  border-right: 1px solid var(--corner);
-  border-top-right-radius: 4px;
-  pointer-events: none;
-  z-index: 2;
-  transition: border-color .35s;
-}
+.player { width: 100%; height: 100%; background: transparent; border-radius: 4px; overflow: hidden; position: relative; }
+.ph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 1; transition: opacity .25s; }
+.ph.gone { opacity: 0; }
+.ph p { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
 
-.player-outer::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0;
-  width: 16px; height: 16px;
-  border-bottom: 1px solid var(--corner);
-  border-left: 1px solid var(--corner);
-  border-bottom-left-radius: 4px;
-  pointer-events: none;
-  z-index: 2;
-  transition: border-color .35s;
-}
-
-.player {
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  border-radius: 4px;
-  overflow: hidden;
-  position: relative;
-}
-
-.ph {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 12px;
-  pointer-events: none;
-  transition: opacity .25s var(--ease);
-  z-index: 1;
-}
-.ph.gone { opacity: 0; pointer-events: none; }
-
-.ph svg {
-  width: 20px; height: 20px;
-  color: var(--faint);
-  transition: color .35s;
-}
-.ph p {
-  font-family: 'Geist Mono', monospace;
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--faint);
-  transition: color .35s;
-}
-
-iframe {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  border: none;
-  opacity: 0;
-  transition: opacity .3s;
-  z-index: 2;
-}
+iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; opacity: 0; transition: opacity 0.5s; z-index: 2; }
 iframe.on { opacity: 1; }
-
-.toast {
-  position: fixed; bottom: 28px; left: 50%;
-  transform: translateX(-50%) translateY(10px);
-  background: var(--text);
-  color: var(--bg);
-  font-family: 'Geist Mono', monospace;
-  font-size: 11px;
-  letter-spacing: .06em;
-  padding: 9px 20px;
-  border-radius: 4px;
-  opacity: 0;
-  transition: opacity .2s, transform .2s var(--ease);
-  pointer-events: none; white-space: nowrap;
-  z-index: 100;
-}
-.toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-@media (max-width: 540px) {
-  main { padding: 32px 18px; }
-  input { font-size: 13px; }
-  .top-bar { top: 14px; right: 16px; }
-}
 </style>
 </head>
 <body>
 
-<canvas id="starfield"></canvas>
+<canvas id="bg-canvas"></canvas>
 <div id="cur"></div>
 
 <div class="top-bar">
-  <button class="theme-btn" id="themeBtn" aria-label="Тема">
-    <svg class="icon-moon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
-      <path d="M12 9.5A5.5 5.5 0 0 1 4.5 2a5.5 5.5 0 1 0 7.5 7.5z"/>
-    </svg>
-    <svg class="icon-sun" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
-      <circle cx="7" cy="7" r="2.5"/>
-      <line x1="7" y1=".5" x2="7" y2="2"/>
-      <line x1="7" y1="12" x2="7" y2="13.5"/>
-      <line x1=".5" y1="7" x2="2" y2="7"/>
-      <line x1="12" y1="7" x2="13.5" y2="7"/>
-      <line x1="2.8" y1="2.8" x2="3.8" y2="3.8"/>
-      <line x1="10.2" y1="10.2" x2="11.2" y2="11.2"/>
-      <line x1="11.2" y1="2.8" x2="10.2" y2="3.8"/>
-      <line x1="3.8" y1="10.2" x2="2.8" y2="11.2"/>
-    </svg>
+  <button class="theme-btn" id="themeBtn">
+    <svg class="icon-moon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 9.5A5.5 5.5 0 0 1 4.5 2a5.5 5.5 0 1 0 7.5 7.5z"/></svg>
+    <svg class="icon-sun" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="2.5"/><path d="M7 .5V2M7 12v1.5M.5 7H2M12 7h1.5M2.8 2.8l1 1M10.2 10.2l1 1M11.2 2.8l-1 1M3.8 10.2l-1 1"/></svg>
   </button>
 </div>
 
 <main>
   <div class="wrap">
-
-    <div class="status-row">
-      <div class="dot" id="dot"></div>
-    </div>
-
+    <div class="status-row"><div class="dot" id="dot"></div></div>
     <div class="inp-area">
-      <input id="inp" type="text"
-        placeholder="вставте посилання на YouTube відео"
-        autocomplete="off" spellcheck="false">
-      <button id="clr" aria-label="Очистити">
-        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <line x1="1" y1="1" x2="9" y2="9"/>
-          <line x1="9" y1="1" x2="1" y2="9"/>
-        </svg>
-      </button>
+      <input id="inp" type="text" placeholder="вставте посилання на YouTube відео" autocomplete="off" spellcheck="false">
+      <button id="clr">✕</button>
     </div>
-
-    <div class="player-outer" id="playerOuter">
-      <div class="player" id="player">
-        <div class="ph" id="ph">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="1" y="3" width="18" height="14" rx="2"/>
-            <polygon points="8,7 14,10 8,13" fill="currentColor" stroke="none" opacity="0.5"/>
-          </svg>
-          <p>очікую посилання</p>
-        </div>
-        <iframe id="frame"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowfullscreen></iframe>
+    <div class="player-outer">
+      <div class="player">
+        <div class="ph" id="ph"><p>очікую посилання</p></div>
+        <iframe id="frame" allow="autoplay; fullscreen"></iframe>
       </div>
     </div>
-
   </div>
 </main>
 
-<div class="toast" id="toast"></div>
-
 <script>
-  /* --- stars animation --- */
-  const canvas = document.getElementById('starfield');
+  const canvas = document.getElementById('bg-canvas');
   const ctx = canvas.getContext('2d');
-  let stars = [];
+  let stars = [], clouds = [];
+  let globalAlpha = 0;
 
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }
-  window.addEventListener('resize', resize);
-  resize();
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  window.addEventListener('resize', resize); resize();
 
   class Star {
-    constructor() {
-      this.init();
-    }
+    constructor() { this.init(); }
     init() {
-      this.x = Math.random() * canvas.width;
-      this.y = Math.random() * canvas.height;
-      this.size = Math.random() * 1.5;
-      this.alpha = 0;
-      this.fadeSpeed = Math.random() * 0.02 + 0.005;
-      this.fadingIn = true;
-      this.maxAlpha = Math.random() * 0.8 + 0.2;
+      this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
+      this.size = Math.random() * 1.5; this.alpha = Math.random(); this.speed = Math.random() * 0.015 + 0.005;
     }
+    update() { this.alpha += this.speed; if (this.alpha > 1 || this.alpha < 0) this.speed *= -1; }
+    draw() { ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha * globalAlpha})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); }
+  }
+
+  class Cloud {
+    constructor() {
+      this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
+      this.r = Math.random() * 150 + 150; this.speed = Math.random() * 0.18 + 0.08;
+    }
+    update() { this.x += this.speed; if (this.x - this.r > canvas.width) this.x = -this.r; }
     draw() {
-      ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    update() {
-      if (this.fadingIn) {
-        this.alpha += this.fadeSpeed;
-        if (this.alpha >= this.maxAlpha) this.fadingIn = false;
-      } else {
-        this.alpha -= this.fadeSpeed;
-        if (this.alpha <= 0) this.init();
-      }
+      const grad = ctx.createRadialGradient(this.x, this.y, this.r * 0.1, this.x, this.y, this.r);
+      grad.addColorStop(0, `rgba(255, 255, 255, ${0.45 * globalAlpha})`);
+      grad.addColorStop(0.6, `rgba(255, 255, 255, ${0.15 * globalAlpha})`);
+      grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fill();
     }
   }
 
-  for (let i = 0; i < 150; i++) stars.push(new Star());
+  for(let i=0; i<150; i++) stars.push(new Star());
+  for(let i=0; i<10; i++) clouds.push(new Cloud());
 
-  function animateStars() {
+  function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    stars.forEach(star => {
-      star.update();
-      star.draw();
-    });
-    requestAnimationFrame(animateStars);
+    const theme = document.documentElement.getAttribute('data-theme');
+    if (globalAlpha < 1) globalAlpha += 0.02;
+
+    if (theme === 'dark') {
+      stars.forEach(s => { s.update(); s.draw(); });
+    } else {
+      clouds.forEach(c => { c.update(); c.draw(); });
+    }
+    requestAnimationFrame(animate);
   }
-  animateStars();
+  animate();
 
-  /* cursor */
-  var curEl = document.getElementById('cur');
-  document.addEventListener('mousemove', function(e) {
-    curEl.style.left = e.clientX + 'px';
-    curEl.style.top  = e.clientY + 'px';
+  const curEl = document.getElementById('cur');
+  document.onmousemove = (e) => { curEl.style.left = e.clientX + 'px'; curEl.style.top = e.clientY + 'px'; };
+  document.querySelectorAll('button, input, a').forEach(el => {
+    el.onmouseenter = () => curEl.classList.add('hover');
+    el.onmouseleave = () => curEl.classList.remove('hover');
   });
-  document.querySelectorAll('button, input, a').forEach(function(el) {
-    el.addEventListener('mouseenter', function() { curEl.classList.add('hover'); });
-    el.addEventListener('mouseleave', function() { curEl.classList.remove('hover'); });
-  });
-
-  /* theme */
-  var html = document.documentElement;
-  var theme = 'dark';
-  try { theme = localStorage.getItem('yt-theme') || 'dark'; } catch(e) {}
-  html.setAttribute('data-theme', theme);
 
   function toggleTheme() {
-    theme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', theme);
-    try { localStorage.setItem('yt-theme', theme); } catch(e) {}
+    globalAlpha = 0;
+    const html = document.documentElement;
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('yt-theme', next);
   }
 
-  document.getElementById('themeBtn').addEventListener('click', function(e) {
-    e.stopPropagation();
-    toggleTheme();
-  });
+  document.getElementById('themeBtn').onclick = (e) => { e.stopPropagation(); toggleTheme(); };
+  document.onclick = (e) => { if (!e.target.closest('input, button, .player-outer')) toggleTheme(); };
 
-  document.addEventListener('click', function(e) {
-    var t = e.target;
-    if (
-      t === document.getElementById('inp') ||
-      t === document.getElementById('clr') ||
-      t.closest('#playerOuter') ||
-      t.closest('.theme-btn')
-    ) return;
-    toggleTheme();
-  });
+  const inp = document.getElementById('inp'), dot = document.getElementById('dot'), 
+        clr = document.getElementById('clr'), frame = document.getElementById('frame'), ph = document.getElementById('ph');
 
-  /* player */
-  var inp   = document.getElementById('inp');
-  var dot   = document.getElementById('dot');
-  var clr   = document.getElementById('clr');
-  var ph    = document.getElementById('ph');
-  var frame = document.getElementById('frame');
-  var toast = document.getElementById('toast');
-  var cur   = null;
-
-  function getId(s) {
-    s = (s || '').trim();
-    var m;
-    m = s.match(/[?&]v=([a-zA-Z0-9_-]{11})/);     if (m) return m[1];
-    m = s.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/); if (m) return m[1];
-    m = s.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);  if (m) return m[1];
-    return null;
-  }
-
-  function play(id) {
-    if (id === cur) return;
-    cur = id;
-    if (!id) {
-      frame.src = 'about:blank';
-      frame.className = '';
-      ph.classList.remove('gone');
-      return;
-    }
-    ph.classList.add('gone');
-    frame.className = 'on';
-    frame.src = 'https://www.youtube-nocookie.com/embed/' + id +
-      '?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&fs=1';
-  }
-
-  function setDot(cls) {
-    dot.className = 'dot' + (cls ? ' ' + cls : '');
-  }
-
-  inp.addEventListener('input', function() {
-    var v = inp.value;
-    clr.className = v ? 'on' : '';
-    if (!v.trim()) {
-      setDot('');
-      play(null);
-      return;
-    }
-    var id = getId(v);
+  inp.oninput = () => {
+    const v = inp.value; clr.style.display = v.length > 0 ? 'flex' : 'none';
+    const idMatch = v.match(/[?&]v=([a-zA-Z0-9_-]{11})|youtu\.be\/([a-zA-Z0-9_-]{11})|\/shorts\/([a-zA-Z0-9_-]{11})/);
+    const id = idMatch ? (idMatch[1] || idMatch[2] || idMatch[3]) : null;
     if (id) {
-      setDot('ok');
-      play(id);
+      dot.className = 'dot ok'; ph.classList.add('gone'); frame.classList.add('on');
+      frame.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&modestbranding=1`;
     } else {
-      setDot('err');
-      play(null);
+      dot.className = v.trim() ? 'dot err' : 'dot';
+      if (!v.trim()) { frame.src = ''; frame.classList.remove('on'); ph.classList.remove('gone'); }
     }
-  });
+  };
 
-  clr.addEventListener('click', function(e) {
-    e.stopPropagation();
-    inp.value = '';
-    setDot('');
-    clr.className = '';
-    play(null);
+  clr.onclick = () => { inp.value = ''; inp.oninput(); inp.focus(); };
+  window.onload = () => {
+    const saved = localStorage.getItem('yt-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
     inp.focus();
-  });
-
-  function showToast(msg) {
-    toast.textContent = msg;
-    toast.className = 'toast on';
-    setTimeout(function() { toast.className = 'toast'; }, 2000);
-  }
-
-  window.addEventListener('load', function() { inp.focus(); });
+  };
 </script>
 </body>
 </html>
