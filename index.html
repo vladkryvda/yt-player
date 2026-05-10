@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; cursor: none !important; }
 :root { --ease: cubic-bezier(.4,0,.2,1); }
 
 [data-theme="dark"] {
@@ -27,8 +27,8 @@
 [data-theme="light"] {
   --bg:          #87CEEB;
   --line:        rgba(26, 43, 60, 0.1);
-  --text:        #1a2b3c; /* Колір глибокої тіні хмари */
-  --inp-text:    #0a1a2a; /* Майже чорний синій для вводу */
+  --text:        #1a2b3c; 
+  --inp-text:    #0a1a2a; 
   --muted:       rgba(26, 43, 60, 0.5);
   --placeholder: rgba(26, 43, 60, 0.35);
   --faint:       rgba(26, 43, 60, 0.4);
@@ -40,7 +40,6 @@
 
 #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
 
-html, body, *, *::before, *::after { cursor: none !important; }
 #cur {
   width: 5px; height: 5px; border-radius: 50%;
   background: var(--cursor-bg); position: fixed;
@@ -78,7 +77,6 @@ main { flex: 1; display: flex; align-items: center; justify-content: center; pad
 .wrap { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 20px; animation: up .5s var(--ease) both; }
 @keyframes up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
-.status-row { height: 14px; display: flex; align-items: center; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: transparent; transition: background .2s; }
 .dot.ok { background: var(--ok); }
 .dot.err { background: var(--err); }
@@ -103,10 +101,10 @@ input::placeholder { color: var(--placeholder); }
   position: absolute; right: 0; top: 50%; transform: translateY(-60%);
   background: none; border: none; color: var(--muted);
   display: none; align-items: center; justify-content: center; width: 36px; height: 36px;
-  font-family: 'Geist Mono', monospace; font-size: 16px;
 }
 #clr.on { display: flex; }
 #clr:hover { color: var(--text); }
+#clr svg { width: 9px; height: 9px; }
 
 .player-outer { position: relative; width: 100%; aspect-ratio: 16/9; }
 .player-outer::before { content: ''; position: absolute; top: 0; right: 0; width: 16px; height: 16px; border-top: 1px solid var(--corner); border-right: 1px solid var(--corner); border-top-right-radius: 4px; z-index: 2; transition: border-color .35s; }
@@ -116,8 +114,9 @@ input::placeholder { color: var(--placeholder); }
 .ph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 1; transition: opacity .25s; }
 .ph.gone { opacity: 0; }
 .ph p { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+.ph svg { width: 20px; height: 20px; color: var(--faint); opacity: 0.5; }
 
-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; opacity: 0; transition: opacity 0.5s; z-index: 2; }
+iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; opacity: 0; transition: opacity .3s; z-index: 2; }
 iframe.on { opacity: 1; }
 </style>
 </head>
@@ -138,11 +137,16 @@ iframe.on { opacity: 1; }
     <div class="status-row"><div class="dot" id="dot"></div></div>
     <div class="inp-area">
       <input id="inp" type="text" placeholder="вставте посилання на YouTube відео" autocomplete="off" spellcheck="false">
-      <button id="clr">✕</button>
+      <button id="clr">
+        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/></svg>
+      </button>
     </div>
-    <div class="player-outer">
+    <div class="player-outer" id="playerOuter">
       <div class="player">
-        <div class="ph" id="ph"><p>очікую посилання</p></div>
+        <div class="ph" id="ph">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="3" width="18" height="14" rx="2"/><polygon points="8,7 14,10 8,13" fill="currentColor" stroke="none"/></svg>
+          <p>очікую посилання</p>
+        </div>
         <iframe id="frame" allow="autoplay; fullscreen"></iframe>
       </div>
     </div>
@@ -162,29 +166,31 @@ iframe.on { opacity: 1; }
     constructor() { this.init(); }
     init() {
       this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
-      this.size = Math.random() * 1.5; this.alpha = Math.random(); this.speed = Math.random() * 0.015 + 0.005;
+      this.size = Math.random() * 1.5; this.alpha = 0; this.maxAlpha = Math.random();
+      this.speed = Math.random() * 0.01 + 0.005;
     }
-    update() { this.alpha += this.speed; if (this.alpha > 1 || this.alpha < 0) this.speed *= -1; }
+    update() { this.alpha += this.speed; if (this.alpha > this.maxAlpha || this.alpha < 0) this.speed *= -1; }
     draw() { ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha * globalAlpha})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); }
   }
 
   class Cloud {
     constructor() {
       this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
-      this.r = Math.random() * 150 + 150; this.speed = Math.random() * 0.18 + 0.08;
+      this.r = Math.random() * 150 + 200; 
+      this.speed = Math.random() * 0.15 + 0.05;
     }
     update() { this.x += this.speed; if (this.x - this.r > canvas.width) this.x = -this.r; }
     draw() {
-      const grad = ctx.createRadialGradient(this.x, this.y, this.r * 0.1, this.x, this.y, this.r);
-      grad.addColorStop(0, `rgba(255, 255, 255, ${0.45 * globalAlpha})`);
-      grad.addColorStop(0.6, `rgba(255, 255, 255, ${0.15 * globalAlpha})`);
-      grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r);
+      grad.addColorStop(0, `rgba(255, 255, 255, ${0.6 * globalAlpha})`);
+      grad.addColorStop(0.4, `rgba(255, 255, 255, ${0.3 * globalAlpha})`);
+      grad.addColorStop(0.8, `rgba(255, 255, 255, 0)`);
       ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fill();
     }
   }
 
   for(let i=0; i<150; i++) stars.push(new Star());
-  for(let i=0; i<10; i++) clouds.push(new Cloud());
+  for(let i=0; i<8; i++) clouds.push(new Cloud());
 
   function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -216,13 +222,13 @@ iframe.on { opacity: 1; }
   }
 
   document.getElementById('themeBtn').onclick = (e) => { e.stopPropagation(); toggleTheme(); };
-  document.onclick = (e) => { if (!e.target.closest('input, button, .player-outer')) toggleTheme(); };
+  document.onclick = (e) => { if (!e.target.closest('input, button, #playerOuter')) toggleTheme(); };
 
   const inp = document.getElementById('inp'), dot = document.getElementById('dot'), 
         clr = document.getElementById('clr'), frame = document.getElementById('frame'), ph = document.getElementById('ph');
 
   inp.oninput = () => {
-    const v = inp.value; clr.style.display = v.length > 0 ? 'flex' : 'none';
+    const v = inp.value; clr.classList.toggle('on', v.length > 0);
     const idMatch = v.match(/[?&]v=([a-zA-Z0-9_-]{11})|youtu\.be\/([a-zA-Z0-9_-]{11})|\/shorts\/([a-zA-Z0-9_-]{11})/);
     const id = idMatch ? (idMatch[1] || idMatch[2] || idMatch[3]) : null;
     if (id) {
@@ -234,7 +240,7 @@ iframe.on { opacity: 1; }
     }
   };
 
-  clr.onclick = () => { inp.value = ''; inp.oninput(); inp.focus(); };
+  clr.onclick = (e) => { e.stopPropagation(); inp.value = ''; inp.oninput(); inp.focus(); };
   window.onload = () => {
     const saved = localStorage.getItem('yt-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', saved);
