@@ -7,7 +7,28 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; cursor: none !important; }
+/* СУВОРИЙ ЗАБОРОН КУРСОРУ */
+*, *::before, *::after { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+  cursor: none !important; 
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Дозволяємо взаємодію з текстом в інпуті, але БЕЗ курсора */
+input {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  cursor: none !important;
+}
+
+/* Захист при кліку */
+*:active {
+  cursor: none !important;
+}
+
 :root { --ease: cubic-bezier(.4,0,.2,1); }
 
 [data-theme="dark"] {
@@ -54,7 +75,7 @@ html { height: 100%; background: var(--bg); transition: background 0.8s var(--ea
 body {
   min-height: 100vh; font-family: 'Geist', sans-serif;
   color: var(--text); display: flex; flex-direction: column;
-  transition: color .35s var(--ease); user-select: none;
+  transition: color .35s var(--ease);
 }
 
 .top-bar { position: fixed; top: 18px; right: 24px; z-index: 50; }
@@ -77,6 +98,7 @@ main { flex: 1; display: flex; align-items: center; justify-content: center; pad
 .wrap { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 20px; animation: up .5s var(--ease) both; }
 @keyframes up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 
+.status-row { height: 14px; display: flex; align-items: center; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: transparent; transition: background .2s; }
 .dot.ok { background: var(--ok); }
 .dot.err { background: var(--err); }
@@ -93,7 +115,6 @@ input {
   padding: 0 48px 8px 16px; font-family: 'Geist Mono', monospace;
   font-size: 14px; font-weight: 300; color: var(--inp-text);
   outline: none; letter-spacing: .02em; transition: color .35s;
-  user-select: text;
 }
 input::placeholder { color: var(--placeholder); }
 
