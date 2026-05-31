@@ -254,7 +254,7 @@ iframe.on { opacity: 1; }
     const id = idMatch ? (idMatch[1] || idMatch[2] || idMatch[3]) : null;
     if (id) {
       dot.className = 'dot ok'; ph.classList.add('gone'); frame.classList.add('on');
-      frame.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&modestbranding=1`;
+      frame.src = `https://www.youtube-nocookie.com/embed/${id}?modestbranding=1&rel=0&origin=${encodeURIComponent(location.origin)}`;
     } else {
       dot.className = v.trim() ? 'dot err' : 'dot';
       if (!v.trim()) { frame.src = ''; frame.classList.remove('on'); ph.classList.remove('gone'); }
