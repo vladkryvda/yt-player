@@ -54,7 +54,7 @@ input, textarea {
   --placeholder: rgba(26, 43, 60, 0.35);
   --faint:       rgba(26, 43, 60, 0.4);
   --ok:          #2d5a3c;
-  --err: ... #a63d3d;
+  --err:         #a63d3d;
   --corner:      rgba(26, 43, 60, 0.2);
   --cursor-bg:   #1a2b3c;
 }
@@ -212,6 +212,24 @@ iframe.on { opacity: 1; }
 </main>
 
 <script>
+  // Допоміжні функції для безпечної роботи з LocalStorage в різних браузерах
+  function safeSave(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn("Storage write access denied", e);
+    }
+  }
+
+  function safeGet(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn("Storage read access denied", e);
+      return null;
+    }
+  }
+
   const canvas = document.getElementById('bg-canvas');
   const ctx = canvas.getContext('2d');
   let stars = [], clouds = [];
@@ -277,7 +295,7 @@ iframe.on { opacity: 1; }
     const html = document.documentElement;
     const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', next);
-    localStorage.setItem('yt-theme', next);
+    safeSave('yt-theme', next);
   }
 
   document.getElementById('themeBtn').onclick = (e) => { e.stopPropagation(); toggleTheme(); };
@@ -285,16 +303,22 @@ iframe.on { opacity: 1; }
   // Додано виключення для '#notes' (textarea), щоб клік по ньому не перемикав тему
   document.onclick = (e) => { if (!e.target.closest('input, textarea, button, #playerOuter')) toggleTheme(); };
 
-  const inp = document.getElementById('inp'), dot = document.getElementById('dot'), 
-        clr = document.getElementById('clr'), frame = document.getElementById('frame'), ph = document.getElementById('ph');
+  const inp = document.getElementById('inp');
+  const dot = document.getElementById('dot');
+  const clr = document.getElementById('clr');
+  const frame = document.getElementById('frame');
+  const ph = document.getElementById('ph');
+  const notes = document.getElementById('notes');
 
   inp.oninput = () => {
-    const v = inp.value; clr.classList.toggle('on', v.length > 0);
+    const v = inp.value; 
+    safeSave('yt-saved-link', v); // збереження введеного посилання
+    clr.classList.toggle('on', v.length > 0);
     const idMatch = v.match(/[?&]v=([a-zA-Z0-9_-]{11})|youtu\.be\/([a-zA-Z0-9_-]{11})|\/shorts\/([a-zA-Z0-9_-]{11})/);
     const id = idMatch ? (idMatch[1] || idMatch[2] || idMatch[3]) : null;
     if (id) {
       dot.className = 'dot ok'; ph.classList.add('gone'); frame.classList.add('on');
-      frame.src = `https://www.youtube.com/embed/${id}?autoplay=1`;
+      frame.src = "https://www.youtube.com/embed/" + id;
     } else {
       dot.className = v.trim() ? 'dot err' : 'dot';
       if (!v.trim()) { frame.src = ''; frame.classList.remove('on'); ph.classList.remove('gone'); }
@@ -303,9 +327,28 @@ iframe.on { opacity: 1; }
 
   clr.onclick = (e) => { e.stopPropagation(); inp.value = ''; inp.oninput(); inp.focus(); };
 
+  // Збереження тексту швидких нотаток
+  notes.oninput = () => {
+    safeSave('yt-saved-notes', notes.value);
+  };
+
   window.onload = () => {
-    const saved = localStorage.getItem('yt-theme') || 'dark';
+    const saved = safeGet('yt-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', saved);
+
+    // Відновлення та ініціалізація збереженого посилання
+    const savedLink = safeGet('yt-saved-link');
+    if (savedLink) {
+      inp.value = savedLink;
+      inp.oninput();
+    }
+
+    // Відновлення збережених нотаток
+    const savedNotes = safeGet('yt-saved-notes');
+    if (savedNotes) {
+      notes.value = savedNotes;
+    }
+
     inp.focus();
   };
 </script>
