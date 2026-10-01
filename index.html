@@ -64,9 +64,12 @@ input, textarea {
 #cur {
   width: 5px; height: 5px; border-radius: 50%;
   background: var(--cursor-bg); position: fixed;
+  top: 0; left: 0;
   pointer-events: none; z-index: 9999;
-  transform: translate(-50%, -50%);
-  transition: width .18s var(--ease), height .18s var(--ease), background .35s;
+  opacity: 0;
+  will-change: transform;
+  transform: translate3d(-100px, -100px, 0) translate(-50%, -50%);
+  transition: width .18s var(--ease), height .18s var(--ease), background .35s, opacity .15s ease;
 }
 #cur.hover { width: 13px; height: 13px; }
 
@@ -137,8 +140,8 @@ input::placeholder { color: var(--placeholder); }
 #clr svg { width: 9px; height: 9px; }
 
 .player-outer { position: relative; width: 100%; aspect-ratio: 16/9; }
-.player-outer::before { content: ''; position: absolute; top: 0; right: 0; width: 16px; height: 16px; border-top: 1px solid var(--corner); border-right: 1px solid var(--corner); border-top-right-radius: 4px; z-index: 2; transition: border-color .35s; }
-.player-outer::after { content: ''; position: absolute; bottom: 0; left: 0; width: 16px; height: 16px; border-bottom: 1px solid var(--corner); border-left: 1px solid var(--corner); border-bottom-left-radius: 4px; z-index: 2; transition: border-color .35s; }
+.player-outer::before { content: ''; position: absolute; top: 0; right: 0; width: 16px; height: 16px; border-top: 1px solid var(--corner); border-right: 1px solid var(--corner); border-top-right-radius: 4px; z-index: 2; transition: border-color .35s; pointer-events: none; }
+.player-outer::after { content: ''; position: absolute; bottom: 0; left: 0; width: 16px; height: 16px; border-bottom: 1px solid var(--corner); border-left: 1px solid var(--corner); border-bottom-left-radius: 4px; z-index: 2; transition: border-color .35s; pointer-events: none; }
 .player { width: 100%; height: 100%; background: transparent; border-radius: 4px; overflow: hidden; position: relative; }
 .ph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 1; transition: opacity .25s; }
 .ph.gone { opacity: 0; }
@@ -202,7 +205,7 @@ iframe.on { opacity: 1; }
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="3" width="18" height="14" rx="2"/><polygon points="8,7 14,10 8,13" fill="currentColor" stroke="none"/></svg>
           <p>очікую посилання</p>
         </div>
-        <iframe id="frame" allow="autoplay; fullscreen"></iframe>
+        <iframe id="frame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"></iframe>
       </div>
     </div>
 
@@ -212,7 +215,6 @@ iframe.on { opacity: 1; }
 </main>
 
 <script>
-  // Допоміжні функції для безпечної роботи з LocalStorage в різних браузерах
   function safeSave(key, value) {
     try {
       localStorage.setItem(key, value);
@@ -230,65 +232,128 @@ iframe.on { opacity: 1; }
     }
   }
 
+  // Pre-render cloud texture once on an off-screen canvas to eliminate CPU radial gradient lag
+  const cloudCanvas = document.createElement('canvas');
+  cloudCanvas.width = 256;
+  cloudCanvas.height = 256;
+  const cloudCtx = cloudCanvas.getContext('2d');
+  const cloudGrad = cloudCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  cloudGrad.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+  cloudGrad.addColorStop(0.4, 'rgba(255, 255, 255, 0.3)');
+  cloudGrad.addColorStop(0.8, 'rgba(255, 255, 255, 0)');
+  cloudCtx.fillStyle = cloudGrad;
+  cloudCtx.beginPath();
+  cloudCtx.arc(128, 128, 128, 0, Math.PI * 2);
+  cloudCtx.fill();
+
   const canvas = document.getElementById('bg-canvas');
   const ctx = canvas.getContext('2d');
   let stars = [], clouds = [];
   let globalAlpha = 0;
 
-  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-  window.addEventListener('resize', resize); resize();
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
 
   class Star {
-    constructor() { this.init(); }
-    init() {
-      this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
-      this.size = Math.random() * 1.5; this.alpha = 0; this.maxAlpha = Math.random();
+    constructor() { this.init(true); }
+    init(randomAlpha = false) {
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.size = Math.random() * 1.5;
+      this.maxAlpha = Math.random() * 0.8 + 0.2;
+      this.alpha = randomAlpha ? Math.random() * this.maxAlpha : 0;
       this.speed = Math.random() * 0.01 + 0.005;
     }
-    update() { this.alpha += this.speed; if (this.alpha > this.maxAlpha || this.alpha < 0) this.speed *= -1; }
-    draw() { ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha * globalAlpha})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); }
+    update() {
+      this.alpha += this.speed;
+      if (this.alpha >= this.maxAlpha) {
+        this.alpha = this.maxAlpha;
+        this.speed = -Math.abs(this.speed);
+      } else if (this.alpha <= 0) {
+        this.alpha = 0;
+        this.speed = Math.abs(this.speed);
+        if (this.x > canvas.width || this.y > canvas.height) {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+        }
+      }
+    }
+    draw() {
+      const a = Math.max(0, Math.min(1, this.alpha * globalAlpha));
+      if (a <= 0.01) return;
+      ctx.fillStyle = `rgba(255, 255, 255, ${a})`;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   class Cloud {
     constructor() {
-      this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
       this.r = Math.random() * 150 + 200; 
       this.speed = Math.random() * 0.15 + 0.05;
     }
-    update() { this.x += this.speed; if (this.x - this.r > canvas.width) this.x = -this.r; }
+    update() {
+      this.x += this.speed;
+      if (this.x - this.r > canvas.width) {
+        this.x = -this.r;
+        this.y = Math.random() * canvas.height;
+      }
+    }
     draw() {
-      const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r);
-      grad.addColorStop(0, `rgba(255, 255, 255, ${0.6 * globalAlpha})`);
-      grad.addColorStop(0.4, `rgba(255, 255, 255, ${0.3 * globalAlpha})`);
-      grad.addColorStop(0.8, `rgba(255, 255, 255, 0)`);
-      ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = globalAlpha;
+      ctx.drawImage(cloudCanvas, this.x - this.r, this.y - this.r, this.r * 2, this.r * 2);
     }
   }
 
-  for(let i=0; i<150; i++) stars.push(new Star());
-  for(let i=0; i<8; i++) clouds.push(new Cloud());
+  for (let i = 0; i < 150; i++) stars.push(new Star());
+  for (let i = 0; i < 8; i++) clouds.push(new Cloud());
 
   function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const theme = document.documentElement.getAttribute('data-theme');
-    if (globalAlpha < 1) globalAlpha += 0.02;
+    if (globalAlpha < 1) globalAlpha = Math.min(1, globalAlpha + 0.02);
     if (theme === 'dark') {
       stars.forEach(s => { s.update(); s.draw(); });
     } else {
       clouds.forEach(c => { c.update(); c.draw(); });
+      ctx.globalAlpha = 1;
     }
     requestAnimationFrame(animate);
   }
   animate();
 
+  // Hardware-accelerated cursor
   const curEl = document.getElementById('cur');
-  document.onmousemove = (e) => { curEl.style.left = e.clientX + 'px'; curEl.style.top = e.clientY + 'px'; };
+  window.addEventListener('mousemove', (e) => {
+    curEl.style.opacity = '1';
+    curEl.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
+  }, { passive: true });
 
-  // Додано підтримку 'textarea' для ефекту наведення курсора
-  document.querySelectorAll('button, input, textarea, a').forEach(el => {
-    el.onmouseenter = () => curEl.classList.add('hover');
-    el.onmouseleave = () => curEl.classList.remove('hover');
-  });
+  document.addEventListener('mouseleave', () => { curEl.style.opacity = '0'; });
+  document.addEventListener('mouseenter', () => { curEl.style.opacity = '1'; });
+
+  // Event delegation for cursor hover state
+  document.addEventListener('mouseover', (e) => {
+    if (e.target.closest('button, input, textarea, a')) {
+      curEl.classList.add('hover');
+    }
+  }, { passive: true });
+
+  document.addEventListener('mouseout', (e) => {
+    if (e.target.closest('button, input, textarea, a')) {
+      const rel = e.relatedTarget;
+      if (!rel || !rel.closest('button, input, textarea, a')) {
+        curEl.classList.remove('hover');
+      }
+    }
+  }, { passive: true });
 
   function toggleTheme() {
     globalAlpha = 0;
@@ -299,8 +364,6 @@ iframe.on { opacity: 1; }
   }
 
   document.getElementById('themeBtn').onclick = (e) => { e.stopPropagation(); toggleTheme(); };
-  
-  // Додано виключення для '#notes' (textarea), щоб клік по ньому не перемикав тему
   document.onclick = (e) => { if (!e.target.closest('input, textarea, button, #playerOuter')) toggleTheme(); };
 
   const inp = document.getElementById('inp');
@@ -310,47 +373,72 @@ iframe.on { opacity: 1; }
   const ph = document.getElementById('ph');
   const notes = document.getElementById('notes');
 
+  // Prevent cursor stuck over YouTube iframe
+  frame.addEventListener('mouseenter', () => { curEl.style.opacity = '0'; });
+  frame.addEventListener('mouseleave', () => { curEl.style.opacity = '1'; });
+  window.addEventListener('blur', () => { curEl.style.opacity = '0'; });
+  window.addEventListener('focus', () => { curEl.style.opacity = '1'; });
+
+  function extractVideoId(v) {
+    if (!v) return null;
+    const str = v.trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
+    const m = str.match(/(?:[?&]v=|youtu\.be\/|\/(?:shorts|embed|live)\/)([a-zA-Z0-9_-]{11})/);
+    return m ? m[1] : null;
+  }
+
   inp.oninput = () => {
     const v = inp.value; 
-    safeSave('yt-saved-link', v); // збереження введеного посилання
+    safeSave('yt-saved-link', v);
     clr.classList.toggle('on', v.length > 0);
-    const idMatch = v.match(/[?&]v=([a-zA-Z0-9_-]{11})|youtu\.be\/([a-zA-Z0-9_-]{11})|\/shorts\/([a-zA-Z0-9_-]{11})/);
-    const id = idMatch ? (idMatch[1] || idMatch[2] || idMatch[3]) : null;
+    const id = extractVideoId(v);
     if (id) {
-      dot.className = 'dot ok'; ph.classList.add('gone'); frame.classList.add('on');
-      frame.src = "https://www.youtube.com/embed/" + id;
+      dot.className = 'dot ok'; 
+      ph.classList.add('gone'); 
+      frame.classList.add('on');
+      const targetSrc = "https://www.youtube.com/embed/" + id;
+      if (frame.src !== targetSrc) {
+        frame.src = targetSrc;
+      }
     } else {
       dot.className = v.trim() ? 'dot err' : 'dot';
-      if (!v.trim()) { frame.src = ''; frame.classList.remove('on'); ph.classList.remove('gone'); }
+      if (!v.trim()) { 
+        if (frame.src) frame.src = ''; 
+        frame.classList.remove('on'); 
+        ph.classList.remove('gone'); 
+      }
     }
   };
 
-  clr.onclick = (e) => { e.stopPropagation(); inp.value = ''; inp.oninput(); inp.focus(); };
+  clr.onclick = (e) => { 
+    e.stopPropagation(); 
+    inp.value = ''; 
+    inp.oninput(); 
+    inp.focus(); 
+  };
 
-  // Збереження тексту швидких нотаток
   notes.oninput = () => {
     safeSave('yt-saved-notes', notes.value);
   };
 
-  window.onload = () => {
+  // Instant state restoration without waiting for slow window.onload
+  (function init() {
     const saved = safeGet('yt-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', saved);
 
-    // Відновлення та ініціалізація збереженого посилання
     const savedLink = safeGet('yt-saved-link');
     if (savedLink) {
       inp.value = savedLink;
       inp.oninput();
     }
 
-    // Відновлення збережених нотаток
     const savedNotes = safeGet('yt-saved-notes');
     if (savedNotes) {
       notes.value = savedNotes;
     }
 
     inp.focus();
-  };
+  })();
 </script>
 </body>
 </html>
