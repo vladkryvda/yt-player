@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>•</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
@@ -17,14 +18,12 @@
   user-select: none;
 }
 
-/* Дозволяємо взаємодію з текстом в інпуті та текстовому полі, але БЕЗ курсора */
 input, textarea {
   user-select: text !important;
   -webkit-user-select: text !important;
   cursor: none !important;
 }
 
-/* Захист при кліку */
 *:active {
   cursor: none !important;
 }
@@ -59,7 +58,16 @@ input, textarea {
   --cursor-bg:   #1a2b3c;
 }
 
-#bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+#bg-canvas { 
+  position: fixed; 
+  top: 0; 
+  left: 0; 
+  width: 100%; 
+  height: 100%; 
+  pointer-events: none; 
+  z-index: 0; 
+  transform: translateZ(0); /* Апаратне прискорення GPU */
+}
 
 #cur {
   width: 5px; height: 5px; border-radius: 50%;
@@ -77,12 +85,12 @@ html {
   height: 100%; 
   background: var(--bg); 
   transition: background 0.8s var(--ease); 
-  overflow: hidden; /* Запобігає скролу сторінки */
+  overflow: hidden;
 }
 
 body {
   height: 100%; 
-  overflow: hidden; /* Запобігає скролу сторінки */
+  overflow: hidden;
   font-family: 'Geist', sans-serif;
   color: var(--text); 
   display: flex; 
@@ -134,26 +142,26 @@ input::placeholder { color: var(--placeholder); }
   position: absolute; right: 0; top: 50%; transform: translateY(-60%);
   background: none; border: none; color: var(--muted);
   display: none; align-items: center; justify-content: center; width: 36px; height: 36px;
+  z-index: 5;
 }
 #clr.on { display: flex; }
 #clr:hover { color: var(--text); }
 #clr svg { width: 9px; height: 9px; }
 
 .player-outer { position: relative; width: 100%; aspect-ratio: 16/9; }
-.player-outer::before { content: ''; position: absolute; top: 0; right: 0; width: 16px; height: 16px; border-top: 1px solid var(--corner); border-right: 1px solid var(--corner); border-top-right-radius: 4px; z-index: 2; transition: border-color .35s; pointer-events: none; }
-.player-outer::after { content: ''; position: absolute; bottom: 0; left: 0; width: 16px; height: 16px; border-bottom: 1px solid var(--corner); border-left: 1px solid var(--corner); border-bottom-left-radius: 4px; z-index: 2; transition: border-color .35s; pointer-events: none; }
-.player { width: 100%; height: 100%; background: transparent; border-radius: 4px; overflow: hidden; position: relative; }
-.ph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 1; transition: opacity .25s; }
+.player-outer::before { content: ''; position: absolute; top: 0; right: 0; width: 16px; height: 16px; border-top: 1px solid var(--corner); border-right: 1px solid var(--corner); border-top-right-radius: 4px; z-index: 3; transition: border-color .35s; pointer-events: none; }
+.player-outer::after { content: ''; position: absolute; bottom: 0; left: 0; width: 16px; height: 16px; border-bottom: 1px solid var(--corner); border-left: 1px solid var(--corner); border-bottom-left-radius: 4px; z-index: 3; transition: border-color .35s; pointer-events: none; }
+.player { width: 100%; height: 100%; background: #00000010; border-radius: 4px; overflow: hidden; position: relative; }
+.ph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 1; transition: opacity .25s; pointer-events: none; }
 .ph.gone { opacity: 0; }
 .ph p { font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
 .ph svg { width: 20px; height: 20px; color: var(--faint); opacity: 0.5; }
 iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; opacity: 0; transition: opacity .3s; z-index: 2; }
 iframe.on { opacity: 1; }
 
-/* Повністю прозоре безрамочне поле під плеєром */
 .quick-notes {
   width: 100%;
-  height: 60px; /* фіксована висота */
+  height: 60px;
   background: transparent;
   border: none;
   outline: none;
@@ -165,16 +173,12 @@ iframe.on { opacity: 1; }
   padding: 8px 16px;
   line-height: 1.5;
   letter-spacing: .02em;
-  overflow-y: auto; /* дозволяє прокручування всередині, якщо тексту багато */
-  scrollbar-width: none; /* приховує смугу прокручування у Firefox */
-  -ms-overflow-style: none; /* приховує смугу прокручування в IE/Edge */
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-.quick-notes::-webkit-scrollbar {
-  display: none; /* приховує смугу прокручування у Chrome/Safari */
-}
-.quick-notes::placeholder {
-  color: var(--placeholder);
-}
+.quick-notes::-webkit-scrollbar { display: none; }
+.quick-notes::placeholder { color: var(--placeholder); }
 </style>
 </head>
 <body>
@@ -183,7 +187,7 @@ iframe.on { opacity: 1; }
 <div id="cur"></div>
 
 <div class="top-bar">
-  <button class="theme-btn" id="themeBtn">
+  <button class="theme-btn" id="themeBtn" title="Змінити тему">
     <svg class="icon-moon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 9.5A5.5 5.5 0 0 1 4.5 2a5.5 5.5 0 1 0 7.5 7.5z"/></svg>
     <svg class="icon-sun" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="2.5"/><path d="M7 .5V2M7 12v1.5M.5 7H2M12 7h1.5M2.8 2.8l1 1M10.2 10.2l1 1M11.2 2.8l-1 1M3.8 10.2l-1 1"/></svg>
   </button>
@@ -194,7 +198,7 @@ iframe.on { opacity: 1; }
     <div class="status-row"><div class="dot" id="dot"></div></div>
     <div class="inp-area">
       <input id="inp" type="text" placeholder="вставте посилання на YouTube відео" autocomplete="off" spellcheck="false">
-      <button id="clr">
+      <button id="clr" title="Очистити">
         <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/></svg>
       </button>
     </div>
@@ -205,49 +209,42 @@ iframe.on { opacity: 1; }
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="3" width="18" height="14" rx="2"/><polygon points="8,7 14,10 8,13" fill="currentColor" stroke="none"/></svg>
           <p>очікую посилання</p>
         </div>
-        <iframe id="frame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"></iframe>
+        <iframe id="frame" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" 
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen></iframe>
       </div>
     </div>
 
-    <!-- Поле для швидких нотаток під плеєром -->
     <textarea id="notes" class="quick-notes" placeholder="швидкі нотатки тут..." autocomplete="off" spellcheck="false"></textarea>
   </div>
 </main>
 
 <script>
   function safeSave(key, value) {
-    try {
-      localStorage.setItem(key, value);
-    } catch (e) {
-      console.warn("Storage write access denied", e);
-    }
+    try { localStorage.setItem(key, value); } catch (e) {}
   }
 
   function safeGet(key) {
-    try {
-      return localStorage.getItem(key);
-    } catch (e) {
-      console.warn("Storage read access denied", e);
-      return null;
-    }
+    try { return localStorage.getItem(key); } catch (e) { return null; }
   }
 
-  // Pre-render cloud texture once on an off-screen canvas to eliminate CPU radial gradient lag
+  // Кешований текстурний канвас для хмар
   const cloudCanvas = document.createElement('canvas');
-  cloudCanvas.width = 256;
-  cloudCanvas.height = 256;
+  cloudCanvas.width = 128;
+  cloudCanvas.height = 128;
   const cloudCtx = cloudCanvas.getContext('2d');
-  const cloudGrad = cloudCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  const cloudGrad = cloudCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
   cloudGrad.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
   cloudGrad.addColorStop(0.4, 'rgba(255, 255, 255, 0.3)');
   cloudGrad.addColorStop(0.8, 'rgba(255, 255, 255, 0)');
   cloudCtx.fillStyle = cloudGrad;
   cloudCtx.beginPath();
-  cloudCtx.arc(128, 128, 128, 0, Math.PI * 2);
+  cloudCtx.arc(64, 64, 64, 0, Math.PI * 2);
   cloudCtx.fill();
 
   const canvas = document.getElementById('bg-canvas');
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { alpha: true });
   let stars = [], clouds = [];
   let globalAlpha = 0;
 
@@ -263,10 +260,10 @@ iframe.on { opacity: 1; }
     init(randomAlpha = false) {
       this.x = Math.random() * canvas.width;
       this.y = Math.random() * canvas.height;
-      this.size = Math.random() * 1.5;
-      this.maxAlpha = Math.random() * 0.8 + 0.2;
+      this.size = Math.random() > 0.8 ? 2 : 1; // 1-2 пікселі
+      this.maxAlpha = Math.random() * 0.7 + 0.3;
       this.alpha = randomAlpha ? Math.random() * this.maxAlpha : 0;
-      this.speed = Math.random() * 0.01 + 0.005;
+      this.speed = Math.random() * 0.02 + 0.01;
     }
     update() {
       this.alpha += this.speed;
@@ -276,19 +273,14 @@ iframe.on { opacity: 1; }
       } else if (this.alpha <= 0) {
         this.alpha = 0;
         this.speed = Math.abs(this.speed);
-        if (this.x > canvas.width || this.y > canvas.height) {
-          this.x = Math.random() * canvas.width;
-          this.y = Math.random() * canvas.height;
-        }
       }
     }
     draw() {
-      const a = Math.max(0, Math.min(1, this.alpha * globalAlpha));
-      if (a <= 0.01) return;
-      ctx.fillStyle = `rgba(255, 255, 255, ${a})`;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-      ctx.fill();
+      const a = this.alpha * globalAlpha;
+      if (a <= 0.03) return;
+      ctx.globalAlpha = a;
+      // fillRect набагато швидший за arc() і не навантажує процесор
+      ctx.fillRect(this.x, this.y, this.size, this.size);
     }
   }
 
@@ -296,8 +288,8 @@ iframe.on { opacity: 1; }
     constructor() {
       this.x = Math.random() * canvas.width;
       this.y = Math.random() * canvas.height;
-      this.r = Math.random() * 150 + 200; 
-      this.speed = Math.random() * 0.15 + 0.05;
+      this.r = Math.random() * 100 + 150; 
+      this.speed = Math.random() * 0.3 + 0.1;
     }
     update() {
       this.x += this.speed;
@@ -307,29 +299,50 @@ iframe.on { opacity: 1; }
       }
     }
     draw() {
-      ctx.globalAlpha = globalAlpha;
+      ctx.globalAlpha = globalAlpha * 0.85;
       ctx.drawImage(cloudCanvas, this.x - this.r, this.y - this.r, this.r * 2, this.r * 2);
     }
   }
 
-  for (let i = 0; i < 150; i++) stars.push(new Star());
-  for (let i = 0; i < 8; i++) clouds.push(new Cloud());
+  for (let i = 0; i < 90; i++) stars.push(new Star());
+  for (let i = 0; i < 5; i++) clouds.push(new Cloud());
 
-  function animate() {
+  // Обмежувач частоти кадрів (30 FPS) — зберігає холодний процесор
+  let lastFrameTime = 0;
+  const targetFPS = 30;
+  const frameInterval = 1000 / targetFPS;
+
+  function animate(currentTime) {
+    requestAnimationFrame(animate);
+
+    // Зупиняємо розрахунки, якщо вкладку згорнуто
+    if (document.hidden) return;
+
+    const elapsed = currentTime - lastFrameTime;
+    if (elapsed < frameInterval) return;
+    lastFrameTime = currentTime - (elapsed % frameInterval);
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const theme = document.documentElement.getAttribute('data-theme');
-    if (globalAlpha < 1) globalAlpha = Math.min(1, globalAlpha + 0.02);
-    if (theme === 'dark') {
-      stars.forEach(s => { s.update(); s.draw(); });
-    } else {
-      clouds.forEach(c => { c.update(); c.draw(); });
-      ctx.globalAlpha = 1;
-    }
-    requestAnimationFrame(animate);
-  }
-  animate();
+    if (globalAlpha < 1) globalAlpha = Math.min(1, globalAlpha + 0.05);
 
-  // Hardware-accelerated cursor
+    if (theme === 'dark') {
+      ctx.fillStyle = '#ffffff';
+      for (let i = 0; i < stars.length; i++) {
+        stars[i].update();
+        stars[i].draw();
+      }
+    } else {
+      for (let i = 0; i < clouds.length; i++) {
+        clouds[i].update();
+        clouds[i].draw();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  requestAnimationFrame(animate);
+
+  // Курсор з апаратним прискоренням
   const curEl = document.getElementById('cur');
   window.addEventListener('mousemove', (e) => {
     curEl.style.opacity = '1';
@@ -339,7 +352,14 @@ iframe.on { opacity: 1; }
   document.addEventListener('mouseleave', () => { curEl.style.opacity = '0'; });
   document.addEventListener('mouseenter', () => { curEl.style.opacity = '1'; });
 
-  // Event delegation for cursor hover state
+  const playerOuter = document.getElementById('playerOuter');
+  playerOuter.addEventListener('mouseenter', () => {
+    if (frame.classList.contains('on')) curEl.style.opacity = '0';
+  });
+  playerOuter.addEventListener('mouseleave', () => {
+    curEl.style.opacity = '1';
+  });
+
   document.addEventListener('mouseover', (e) => {
     if (e.target.closest('button, input, textarea, a')) {
       curEl.classList.add('hover');
@@ -363,8 +383,16 @@ iframe.on { opacity: 1; }
     safeSave('yt-theme', next);
   }
 
-  document.getElementById('themeBtn').onclick = (e) => { e.stopPropagation(); toggleTheme(); };
-  document.onclick = (e) => { if (!e.target.closest('input, textarea, button, #playerOuter')) toggleTheme(); };
+  document.getElementById('themeBtn').onclick = (e) => { 
+    e.stopPropagation(); 
+    toggleTheme(); 
+  };
+  
+  document.onclick = (e) => { 
+    if (!e.target.closest('input, textarea, button, #playerOuter')) {
+      toggleTheme(); 
+    }
+  };
 
   const inp = document.getElementById('inp');
   const dot = document.getElementById('dot');
@@ -373,11 +401,7 @@ iframe.on { opacity: 1; }
   const ph = document.getElementById('ph');
   const notes = document.getElementById('notes');
 
-  // Prevent cursor stuck over YouTube iframe
-  frame.addEventListener('mouseenter', () => { curEl.style.opacity = '0'; });
-  frame.addEventListener('mouseleave', () => { curEl.style.opacity = '1'; });
-  window.addEventListener('blur', () => { curEl.style.opacity = '0'; });
-  window.addEventListener('focus', () => { curEl.style.opacity = '1'; });
+  let currentVideoId = null;
 
   function extractVideoId(v) {
     if (!v) return null;
@@ -387,54 +411,82 @@ iframe.on { opacity: 1; }
     return m ? m[1] : null;
   }
 
+  function setVideo(id) {
+    if (currentVideoId === id) return;
+    currentVideoId = id;
+
+    dot.className = 'dot ok'; 
+    ph.classList.add('gone'); 
+    frame.classList.add('on');
+    frame.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&enablejsapi=1&rel=0`;
+  }
+
+  function clearVideo() {
+    currentVideoId = null;
+    frame.src = '';
+    frame.classList.remove('on');
+    ph.classList.remove('gone');
+  }
+
+  let saveLinkTimer = null;
   inp.oninput = () => {
     const v = inp.value; 
-    safeSave('yt-saved-link', v);
+    clearTimeout(saveLinkTimer);
+    saveLinkTimer = setTimeout(() => safeSave('yt-saved-link', v), 400);
+
     clr.classList.toggle('on', v.length > 0);
     const id = extractVideoId(v);
+
     if (id) {
-      dot.className = 'dot ok'; 
-      ph.classList.add('gone'); 
-      frame.classList.add('on');
-      const targetSrc = "https://www.youtube.com/embed/" + id;
-      if (frame.src !== targetSrc) {
-        frame.src = targetSrc;
-      }
+      setVideo(id);
     } else {
       dot.className = v.trim() ? 'dot err' : 'dot';
       if (!v.trim()) { 
-        if (frame.src) frame.src = ''; 
-        frame.classList.remove('on'); 
-        ph.classList.remove('gone'); 
+        clearVideo();
       }
     }
   };
 
+  function resetInput() {
+    inp.value = '';
+    clearTimeout(saveLinkTimer);
+    safeSave('yt-saved-link', '');
+    clr.classList.remove('on');
+    clearVideo();
+    dot.className = 'dot';
+    inp.focus();
+  }
+
   clr.onclick = (e) => { 
     e.stopPropagation(); 
-    inp.value = ''; 
-    inp.oninput(); 
-    inp.focus(); 
+    resetInput();
   };
 
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') resetInput();
+  });
+
+  let notesTimer = null;
   notes.oninput = () => {
-    safeSave('yt-saved-notes', notes.value);
+    clearTimeout(notesTimer);
+    notesTimer = setTimeout(() => {
+      safeSave('yt-saved-notes', notes.value);
+    }, 500);
   };
 
-  // Instant state restoration without waiting for slow window.onload
   (function init() {
     const saved = safeGet('yt-theme') || 'dark';
     document.documentElement.setAttribute('data-theme', saved);
+
+    const savedNotes = safeGet('yt-saved-notes');
+    if (savedNotes) {
+      notes.value = savedNotes;
+    }
 
     const savedLink = safeGet('yt-saved-link');
     if (savedLink) {
       inp.value = savedLink;
       inp.oninput();
-    }
-
-    const savedNotes = safeGet('yt-saved-notes');
-    if (savedNotes) {
-      notes.value = savedNotes;
     }
 
     inp.focus();
