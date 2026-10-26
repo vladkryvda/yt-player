@@ -53,35 +53,45 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  padding: 24px;
 }
 
-/* 2. Cursor hiding when idle */
+/* Auto-hide cursor when resting */
 body.idle, body.idle * {
   cursor: none !important;
 }
 
-/* Frame Container */
+/* Player Frame */
 .player-box {
   position: relative;
   width: 100%;
-  max-width: 940px;
+  max-width: 940px; /* Dynamic via JS scroll */
   aspect-ratio: 16 / 9;
   background-color: var(--surface);
   border: 1px solid var(--border);
-  transition: var(--trans);
+  transition: var(--trans), border-color 0.4s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* 1. Thin Hairline Corner Brackets */
+/* Dynamic Collapse: borders vanish during playback */
+.player-box.playing {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+/* Hairline Corner Brackets */
 .corner {
   position: absolute;
   width: 8px;
   height: 8px;
   pointer-events: none;
-  transition: var(--trans);
+  transition: var(--trans), opacity 0.4s ease, transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.player-box.playing .corner {
+  opacity: 0;
 }
 
 .corner-tl {
@@ -112,12 +122,17 @@ body.idle, body.idle * {
   border-right: 1px solid var(--corner);
 }
 
-/* Quiet prompt when empty */
+/* Micro-pulse: shutter effect on ⌘V */
+.pulsing .corner-tl { transform: translate(-3px, -3px); }
+.pulsing .corner-tr { transform: translate(3px, -3px); }
+.pulsing .corner-bl { transform: translate(-3px, 3px); }
+.pulsing .corner-br { transform: translate(3px, 3px); }
+
+/* Minimal Prompt */
 .cue {
   color: var(--faint);
   font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.12em;
   pointer-events: none;
   transition: opacity 0.2s ease, var(--trans);
 }
@@ -126,7 +141,7 @@ body.idle, body.idle * {
   opacity: 0;
 }
 
-/* Pure Player Frame */
+/* Video Frame */
 iframe {
   position: absolute;
   inset: 0;
@@ -135,7 +150,7 @@ iframe {
   border: none;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.3s ease;
 }
 
 iframe.active {
@@ -147,14 +162,14 @@ iframe.active {
 <body>
 
 <div class="player-box" id="playerBox">
-  <!-- Minimalist Corner Reticles -->
+  <!-- Thin Corner Brackets -->
   <div class="corner corner-tl"></div>
   <div class="corner corner-tr"></div>
   <div class="corner corner-bl"></div>
   <div class="corner corner-br"></div>
 
-  <!-- Subtle placeholder -->
-  <div class="cue" id="cue">[ ⌘v ]</div>
+  <!-- Pure Cue -->
+  <div class="cue" id="cue">⌘V</div>
 
   <iframe id="video" 
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -163,24 +178,39 @@ iframe.active {
 
 <script>
   const html = document.documentElement;
+  const playerBox = document.getElementById('playerBox');
   const video = document.getElementById('video');
   const cue = document.getElementById('cue');
 
   let hasVideo = false;
   let idleTimer = null;
 
-  // 1. Theme toggle on click anywhere (synchronized)
-  function toggleTheme() {
-    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
-    try { localStorage.setItem('player-theme', next); } catch(e) {}
+  // 1. Dynamic Scaling (Scroll & Trackpad)
+  let currentWidth = 940;
+  const minWidth = 460;
+
+  function updateScale(delta) {
+    const maxWidth = Math.min(1600, window.innerWidth * 0.94);
+    currentWidth = Math.max(minWidth, Math.min(maxWidth, currentWidth + delta));
+    playerBox.style.maxWidth = `${Math.round(currentWidth)}px`;
   }
 
+  window.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    // Trackpad pinch-to-zoom gives e.ctrlKey = true
+    const sensitivity = e.ctrlKey ? 2.5 : 0.8;
+    // Scroll up (negative deltaY) -> increase scale; Scroll down -> decrease scale
+    const delta = -e.deltaY * sensitivity;
+    updateScale(delta);
+  }, { passive: false });
+
+  // 2. Synchronous Theme Toggle on background click
   window.addEventListener('click', () => {
-    toggleTheme();
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
   });
 
-  // 2. Hide cursor on 2s inactivity
+  // 3. Auto-hide cursor on 2s inactivity
   function wakeCursor() {
     document.body.classList.remove('idle');
     clearTimeout(idleTimer);
@@ -193,7 +223,7 @@ iframe.active {
   window.addEventListener('keydown', wakeCursor);
   wakeCursor();
 
-  // 3. YouTube link parsing
+  // 4. YouTube link parsing
   function extractId(url) {
     if (!url) return null;
     const match = url.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([a-zA-Z0-9_-]{11})/);
@@ -218,6 +248,7 @@ iframe.active {
     cue.classList.add('hidden');
     video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0${time ? `&start=${time}` : ''}`;
     video.classList.add('active');
+    playerBox.classList.add('playing');
   }
 
   function clearVideo() {
@@ -225,14 +256,17 @@ iframe.active {
     hasVideo = false;
     video.src = '';
     video.classList.remove('active');
+    playerBox.classList.remove('playing');
     cue.classList.remove('hidden');
   }
 
-  // 4. Keyboard shortcuts
+  // 5. Shortcuts
   window.addEventListener('paste', (e) => {
     const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
     const id = extractId(text);
     if (id) {
+      playerBox.classList.add('pulsing');
+      setTimeout(() => playerBox.classList.remove('pulsing'), 160);
       play(id, extractStart(text));
     }
   });
@@ -243,12 +277,11 @@ iframe.active {
     }
   });
 
-  // Restore saved theme
+  // System theme init (no localStorage)
   (function init() {
-    try {
-      const saved = localStorage.getItem('player-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-      html.setAttribute('data-theme', saved);
-    } catch(e) {}
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    updateScale(0); // set initial max-width clamp
   })();
 </script>
 </body>
