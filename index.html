@@ -251,14 +251,15 @@ iframe.active {
     hasVideo = true;
     currentVideo = { id, time };
     cue.classList.add('hidden');
-    video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0${time ? `&start=${time}` : ''}`;
+    // rel=1 displays recommendations across YouTube, not just from the current channel
+    video.src = `https://www.youtube.com/embed/${id}?autoplay=1&rel=1${time ? `&start=${time}` : ''}`;
     video.classList.add('active');
     playerBox.classList.add('playing');
   }
 
   function clearVideo() {
     if (!hasVideo) return;
-    lastClearedVideo = { ...currentVideo }; // Пам'ятаємо стерте відео для ⌘Z
+    lastClearedVideo = { ...currentVideo }; // Remember cleared video for ⌘Z
     hasVideo = false;
     currentVideo = null;
     video.src = '';
@@ -286,7 +287,7 @@ iframe.active {
   window.addEventListener('keydown', (e) => {
     const isCmdOrCtrl = e.metaKey || e.ctrlKey;
 
-    // Undo: ⌘Z або Ctrl+Z
+    // Undo: ⌘Z or Ctrl+Z
     if (isCmdOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
       if (!hasVideo && lastClearedVideo) {
         e.preventDefault();
@@ -296,7 +297,7 @@ iframe.active {
       return;
     }
 
-    // Clear: Esc або Backspace
+    // Clear: Esc or Backspace
     if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Delete') {
       clearVideo();
     }
