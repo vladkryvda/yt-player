@@ -34,7 +34,7 @@
   --faint: #635e55;
 }
 
-/* Identical unified transition curve to eliminate any flash */
+/* Synchronized smooth transition without flash */
 html, body, .player-box, .corner, .cue {
   transition: background-color 0.15s ease,
               border-color 0.15s ease,
@@ -59,7 +59,7 @@ body {
   padding: 24px;
 }
 
-/* Auto-hide cursor when resting */
+/* Auto-hide cursor on idle */
 body.idle, body.idle * {
   cursor: none !important;
 }
@@ -77,7 +77,7 @@ body.idle, body.idle * {
   justify-content: center;
 }
 
-/* Seamless collapse when playing */
+/* Dynamic Collapse during playback */
 .player-box.playing {
   border-color: transparent;
   background-color: transparent;
@@ -127,7 +127,7 @@ body.idle, body.idle * {
   border-right: 1px solid var(--corner);
 }
 
-/* Soft Shutter pulse on paste */
+/* Shutter pulse on ⌘V / ⌘Z */
 .pulsing .corner-tl { transform: translate(-3px, -3px); }
 .pulsing .corner-tr { transform: translate(3px, -3px); }
 .pulsing .corner-bl { transform: translate(-3px, 3px); }
@@ -187,6 +187,8 @@ iframe.active {
   const cue = document.getElementById('cue');
 
   let hasVideo = false;
+  let currentVideo = null;
+  let lastClearedVideo = null;
   let idleTimer = null;
 
   // 1. Dynamic Scale (Trackpad & Scroll)
@@ -247,6 +249,7 @@ iframe.active {
 
   function play(id, time) {
     hasVideo = true;
+    currentVideo = { id, time };
     cue.classList.add('hidden');
     video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0${time ? `&start=${time}` : ''}`;
     video.classList.add('active');
@@ -255,26 +258,45 @@ iframe.active {
 
   function clearVideo() {
     if (!hasVideo) return;
+    lastClearedVideo = { ...currentVideo }; // Пам'ятаємо стерте відео для ⌘Z
     hasVideo = false;
+    currentVideo = null;
     video.src = '';
     video.classList.remove('active');
     playerBox.classList.remove('playing');
     cue.classList.remove('hidden');
   }
 
-  // 5. Shutter micro-pulse & instant play on ⌘V
+  function triggerPulse() {
+    playerBox.classList.add('pulsing');
+    setTimeout(() => playerBox.classList.remove('pulsing'), 160);
+  }
+
+  // 5. Paste: ⌘V / Ctrl+V
   window.addEventListener('paste', (e) => {
     const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
     const id = extractId(text);
     if (id) {
-      playerBox.classList.add('pulsing');
-      setTimeout(() => playerBox.classList.remove('pulsing'), 160);
+      triggerPulse();
       play(id, extractStart(text));
     }
   });
 
-  // 6. Clear on Escape / Backspace
+  // 6. Keyboard Controls: Esc/Backspace (Clear) & ⌘Z (Undo)
   window.addEventListener('keydown', (e) => {
+    const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+
+    // Undo: ⌘Z або Ctrl+Z
+    if (isCmdOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+      if (!hasVideo && lastClearedVideo) {
+        e.preventDefault();
+        triggerPulse();
+        play(lastClearedVideo.id, lastClearedVideo.time);
+      }
+      return;
+    }
+
+    // Clear: Esc або Backspace
     if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Delete') {
       clearVideo();
     }
