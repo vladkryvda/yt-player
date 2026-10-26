@@ -18,23 +18,27 @@
   /* Japanese Washi (Unbleached Paper) */
   --bg: #f4f1ea;
   --surface: #f9f7f2;
-  --border: #e3ded5;
-  --corner: #38342e;
+  --border: #dfd9ce;
+  --corner: #8c8578;
   --text: #322e29;
-  --faint: #a69f92;
-  --trans: background-color 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-           border-color 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-           color 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  --faint: #aba394;
 }
 
 [data-theme="dark"] {
   /* Kuro-sumi / Yakisugi (Burnt Cedar & Charcoal) */
   --bg: #131211;
-  --surface: #191816;
-  --border: #292724;
-  --corner: #ded8ce;
+  --surface: #181715;
+  --border: #262421;
+  --corner: #6e685f;
   --text: #ede8df;
   --faint: #635e55;
+}
+
+/* Identical unified transition curve to eliminate any flash */
+html, body, .player-box, .corner, .cue {
+  transition: background-color 0.15s ease,
+              border-color 0.15s ease,
+              color 0.15s ease;
 }
 
 html, body {
@@ -44,7 +48,6 @@ html, body {
   color: var(--text);
   font-family: 'Geist Mono', monospace;
   -webkit-font-smoothing: antialiased;
-  transition: var(--trans);
   user-select: none;
   overflow: hidden;
 }
@@ -65,29 +68,31 @@ body.idle, body.idle * {
 .player-box {
   position: relative;
   width: 100%;
-  max-width: 940px; /* Dynamic via JS scroll */
+  max-width: 940px;
   aspect-ratio: 16 / 9;
   background-color: var(--surface);
   border: 1px solid var(--border);
-  transition: var(--trans), border-color 0.4s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Dynamic Collapse: borders vanish during playback */
+/* Seamless collapse when playing */
 .player-box.playing {
   border-color: transparent;
   background-color: transparent;
 }
 
-/* Hairline Corner Brackets */
+/* Hairline Corner Reticles */
 .corner {
   position: absolute;
   width: 8px;
   height: 8px;
   pointer-events: none;
-  transition: var(--trans), opacity 0.4s ease, transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background-color 0.15s ease,
+              border-color 0.15s ease,
+              opacity 0.25s ease,
+              transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .player-box.playing .corner {
@@ -122,19 +127,18 @@ body.idle, body.idle * {
   border-right: 1px solid var(--corner);
 }
 
-/* Micro-pulse: shutter effect on ⌘V */
+/* Soft Shutter pulse on paste */
 .pulsing .corner-tl { transform: translate(-3px, -3px); }
 .pulsing .corner-tr { transform: translate(3px, -3px); }
 .pulsing .corner-bl { transform: translate(-3px, 3px); }
 .pulsing .corner-br { transform: translate(3px, 3px); }
 
-/* Minimal Prompt */
+/* Minimal Cue */
 .cue {
   color: var(--faint);
   font-size: 11px;
   letter-spacing: 0.12em;
   pointer-events: none;
-  transition: opacity 0.2s ease, var(--trans);
 }
 
 .cue.hidden {
@@ -150,7 +154,7 @@ iframe {
   border: none;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
 }
 
 iframe.active {
@@ -162,13 +166,13 @@ iframe.active {
 <body>
 
 <div class="player-box" id="playerBox">
-  <!-- Thin Corner Brackets -->
+  <!-- Corner Reticles -->
   <div class="corner corner-tl"></div>
   <div class="corner corner-tr"></div>
   <div class="corner corner-bl"></div>
   <div class="corner corner-br"></div>
 
-  <!-- Pure Cue -->
+  <!-- Quiet Cue -->
   <div class="cue" id="cue">⌘V</div>
 
   <iframe id="video" 
@@ -185,9 +189,9 @@ iframe.active {
   let hasVideo = false;
   let idleTimer = null;
 
-  // 1. Dynamic Scaling (Scroll & Trackpad)
+  // 1. Dynamic Scale (Trackpad & Scroll)
   let currentWidth = 940;
-  const minWidth = 460;
+  const minWidth = 440;
 
   function updateScale(delta) {
     const maxWidth = Math.min(1600, window.innerWidth * 0.94);
@@ -197,20 +201,18 @@ iframe.active {
 
   window.addEventListener('wheel', (e) => {
     e.preventDefault();
-    // Trackpad pinch-to-zoom gives e.ctrlKey = true
     const sensitivity = e.ctrlKey ? 2.5 : 0.8;
-    // Scroll up (negative deltaY) -> increase scale; Scroll down -> decrease scale
     const delta = -e.deltaY * sensitivity;
     updateScale(delta);
   }, { passive: false });
 
-  // 2. Synchronous Theme Toggle on background click
+  // 2. Synchronous Theme Toggle on Background Click
   window.addEventListener('click', () => {
     const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', next);
   });
 
-  // 3. Auto-hide cursor on 2s inactivity
+  // 3. Hide Cursor on 2s Inactivity
   function wakeCursor() {
     document.body.classList.remove('idle');
     clearTimeout(idleTimer);
@@ -223,7 +225,7 @@ iframe.active {
   window.addEventListener('keydown', wakeCursor);
   wakeCursor();
 
-  // 4. YouTube link parsing
+  // 4. Link & Timestamp Parsing
   function extractId(url) {
     if (!url) return null;
     const match = url.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([a-zA-Z0-9_-]{11})/);
@@ -260,7 +262,7 @@ iframe.active {
     cue.classList.remove('hidden');
   }
 
-  // 5. Shortcuts
+  // 5. Shutter micro-pulse & instant play on ⌘V
   window.addEventListener('paste', (e) => {
     const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
     const id = extractId(text);
@@ -271,17 +273,18 @@ iframe.active {
     }
   });
 
+  // 6. Clear on Escape / Backspace
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Delete') {
       clearVideo();
     }
   });
 
-  // System theme init (no localStorage)
+  // System Theme init (Zero storage)
   (function init() {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-    updateScale(0); // set initial max-width clamp
+    updateScale(0);
   })();
 </script>
 </body>
