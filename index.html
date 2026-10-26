@@ -77,26 +77,16 @@ body.idle, body.idle * {
   justify-content: center;
 }
 
-/* Dynamic Collapse during playback */
-.player-box.playing {
-  border-color: transparent;
-  background-color: transparent;
-}
-
-/* Hairline Corner Reticles */
+/* Hairline Corner Reticles — always visible, framing the video */
 .corner {
   position: absolute;
   width: 8px;
   height: 8px;
   pointer-events: none;
+  z-index: 5;
   transition: background-color 0.15s ease,
               border-color 0.15s ease,
-              opacity 0.25s ease,
               transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.player-box.playing .corner {
-  opacity: 0;
 }
 
 .corner-tl {
@@ -166,7 +156,7 @@ iframe.active {
 <body>
 
 <div class="player-box" id="playerBox">
-  <!-- Corner Reticles -->
+  <!-- Precision Corner Reticles (Stay permanently visible) -->
   <div class="corner corner-tl"></div>
   <div class="corner corner-tr"></div>
   <div class="corner corner-bl"></div>
@@ -253,17 +243,15 @@ iframe.active {
     cue.classList.add('hidden');
     video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0${time ? `&start=${time}` : ''}`;
     video.classList.add('active');
-    playerBox.classList.add('playing');
   }
 
   function clearVideo() {
     if (!hasVideo) return;
-    lastClearedVideo = { ...currentVideo }; // Пам'ятаємо стерте відео для ⌘Z
+    lastClearedVideo = { ...currentVideo }; // Пам'ятаємо для ⌘Z
     hasVideo = false;
     currentVideo = null;
     video.src = '';
     video.classList.remove('active');
-    playerBox.classList.remove('playing');
     cue.classList.remove('hidden');
   }
 
