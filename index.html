@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Player</title>
 
-<!-- Preconnect to YouTube endpoints for zero-latency loading -->
+<!-- Preconnect to eliminate network delay -->
 <link rel="preconnect" href="https://www.youtube-nocookie.com">
 <link rel="dns-prefetch" href="https://www.youtube-nocookie.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,7 +40,7 @@
 }
 
 /* Synchronized smooth transition without flash */
-html, body, .player-box, .corner, .cue, .hint {
+html, body, .player-box, .corner, .cue {
   transition: background-color 0.15s ease,
               border-color 0.15s ease,
               color 0.15s ease;
@@ -166,25 +166,6 @@ iframe.active {
   opacity: 1;
   pointer-events: auto;
 }
-
-/* Minimalist Unmute Hint (Auto-fades out) */
-.hint {
-  position: absolute;
-  bottom: -28px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--faint);
-  opacity: 0;
-  pointer-events: none;
-  white-space: nowrap;
-  transition: opacity 0.4s ease;
-}
-
-.hint.visible {
-  opacity: 1;
-}
 </style>
 </head>
 <body>
@@ -199,13 +180,9 @@ iframe.active {
   <!-- Quiet Cue -->
   <div class="cue" id="cue">⌘V</div>
 
-  <!-- YouTube Embed -->
   <iframe id="video" 
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
           allowfullscreen></iframe>
-
-  <!-- Auto-fading Sound Hint -->
-  <div class="hint" id="hint">MUTED FOR INSTANT PLAY • CLICK PLAYER FOR SOUND</div>
 </div>
 
 <script>
@@ -213,13 +190,11 @@ iframe.active {
   const playerBox = document.getElementById('playerBox');
   const video = document.getElementById('video');
   const cue = document.getElementById('cue');
-  const hint = document.getElementById('hint');
 
   let hasVideo = false;
   let currentVideo = null;
   let lastClearedVideo = null;
   let idleTimer = null;
-  let hintTimer = null;
 
   // 1. Dynamic Scale (Trackpad & Scroll)
   let currentWidth = 940;
@@ -240,7 +215,6 @@ iframe.active {
 
   // 2. Synchronous Theme Toggle on Background Click
   window.addEventListener('click', (e) => {
-    // Only toggle if clicked outside the playing video
     if (e.target.tagName !== 'IFRAME') {
       const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
@@ -260,7 +234,7 @@ iframe.active {
   window.addEventListener('keydown', wakeCursor);
   wakeCursor();
 
-  // 4. Link & Timestamp Parsing (Supports watch, shorts, live, youtu.be, raw IDs)
+  // 4. Link & Timestamp Parsing
   function extractId(url) {
     if (!url) return null;
     const match = url.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([a-zA-Z0-9_-]{11})/);
@@ -280,25 +254,18 @@ iframe.active {
     return sec;
   }
 
-  // 5. Playback Engine
+  // 5. Playback: Plays unmuted with full audio immediately
   function play(id, time) {
     hasVideo = true;
     currentVideo = { id, time };
     cue.classList.add('hidden');
 
-    // Use youtube-nocookie and mute=1 to guarantee immediate autoplay without buffer hanging
     const timeParam = time ? `&start=${time}` : '';
-    video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&playsinline=1&rel=1&enablejsapi=1${timeParam}`;
+    // Unmuted, instant loading via youtube-nocookie
+    video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=1${timeParam}`;
 
     video.classList.add('active');
     playerBox.classList.add('playing');
-
-    // Display the minimal sound hint and fade it out after 3.5 seconds
-    clearTimeout(hintTimer);
-    hint.classList.add('visible');
-    hintTimer = setTimeout(() => {
-      hint.classList.remove('visible');
-    }, 3500);
   }
 
   function clearVideo() {
@@ -310,9 +277,6 @@ iframe.active {
     video.classList.remove('active');
     playerBox.classList.remove('playing');
     cue.classList.remove('hidden');
-
-    clearTimeout(hintTimer);
-    hint.classList.remove('visible');
   }
 
   function triggerPulse() {
