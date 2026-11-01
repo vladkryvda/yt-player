@@ -16,29 +16,30 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+::selection {
+  background: transparent;
 }
 
 :root {
   /* Japanese Washi (Light) */
   --bg: #f4f1ea;
   --text: #2b2824;
-  --faint: #9c9588;
-  --shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.14);
-  --radius: 18px;
+  --faint: #8f887b;
+  --video-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.16);
+  --radius-video: 18px;
 }
 
 [data-theme="dark"] {
-  /* Kuro-sumi / Burnt Cedar (Dark) */
-  --bg: #131211;
+  /* Kuro-sumi / Yakisugi Charcoal (Dark) */
+  --bg: #111110;
   --text: #ede8df;
-  --faint: #6e675b;
-  --shadow: 0 28px 70px -12px rgba(0, 0, 0, 0.7);
-  --radius: 18px;
-}
-
-html, body, .cue {
-  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  --faint: #6b6459;
+  --video-shadow: 0 28px 70px -14px rgba(0, 0, 0, 0.75);
+  --radius-video: 18px;
 }
 
 html, body {
@@ -48,8 +49,10 @@ html, body {
   color: var(--text);
   font-family: 'Geist Mono', monospace;
   -webkit-font-smoothing: antialiased;
-  user-select: none;
   overflow: hidden;
+  cursor: none; /* Replaced by smooth-fading cursor */
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body {
@@ -59,11 +62,33 @@ body {
   padding: 24px;
 }
 
-body.idle, body.idle * {
-  cursor: none !important;
+/* Smooth-Fading Mouse Cursor */
+.custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 99999;
+  opacity: 1;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
 }
 
-/* Base Wrapper */
+.custom-cursor.idle {
+  opacity: 0;
+}
+
+/* Micro-Texture Film Grain */
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Video Scalable Box */
 .player-box {
   position: relative;
   width: 100%;
@@ -80,7 +105,7 @@ body.idle, body.idle * {
 .viewport {
   position: absolute;
   inset: 0;
-  border-radius: var(--radius);
+  border-radius: var(--radius-video);
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
@@ -95,22 +120,47 @@ body.idle, body.idle * {
   opacity: 1;
   pointer-events: auto;
   transform: scale(1);
-  box-shadow: var(--shadow);
+  box-shadow: var(--video-shadow);
 }
 
-/* Pure Minimal Characters Only: No Box, No Border, No Background */
+/* Shield to prevent hover controls until clicked once */
+.video-shield {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: transparent;
+}
+
+.video-shield.unshielded {
+  pointer-events: none;
+}
+
+/* Minimal Living Breathing Cue */
 .cue {
-  font-size: 15px;
-  font-weight: 400;
-  letter-spacing: 0.12em;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   color: var(--faint);
   pointer-events: none;
+  animation: breathe 3.6s ease-in-out infinite;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .cue.hidden {
   opacity: 0;
   transform: scale(0.9);
+  animation: none;
+}
+
+@keyframes breathe {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
 }
 
 /* Video Frame */
@@ -120,18 +170,27 @@ iframe {
   width: 100%;
   height: 100%;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-video);
 }
 </style>
 </head>
 <body>
 
+<!-- Smooth-fading hardware cursor -->
+<svg class="custom-cursor" id="customCursor" width="20" height="20" viewBox="0 0 24 24">
+  <path fill="var(--text)" stroke="var(--bg)" stroke-width="1.5" stroke-linejoin="round" d="M3 2l12 12h-6l4 8-2.5 1-4-8-3.5 3.5V2z"/>
+</svg>
+
+<!-- Tactile grain layer -->
+<div class="grain"></div>
+
 <div class="player-box" id="playerBox">
-  <!-- Raw Symbols Only -->
+  <!-- Breathing Hotkey Cue Only -->
   <div class="cue" id="cue">⌘V</div>
 
-  <!-- Rounded Video Canvas -->
+  <!-- Rounded Floating Video Viewport -->
   <div class="viewport">
+    <div class="video-shield" id="videoShield"></div>
     <iframe id="video" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
             allowfullscreen></iframe>
@@ -143,14 +202,15 @@ iframe {
   const playerBox = document.getElementById('playerBox');
   const video = document.getElementById('video');
   const cue = document.getElementById('cue');
+  const customCursor = document.getElementById('customCursor');
+  const videoShield = document.getElementById('videoShield');
 
   let hasVideo = false;
   let currentVideo = null;
   let lastClearedVideo = null;
   let idleTimer = null;
-  let isIdle = false;
 
-  // 1. Dynamic Scaling via requestAnimationFrame (Low CPU / 60-120fps)
+  // 1. Smooth Scaling Loop via requestAnimationFrame (Low CPU / 60-120fps)
   let currentWidth = 940;
   let targetWidth = 940;
   const minWidth = 440;
@@ -178,9 +238,9 @@ iframe {
     }
   }
 
-  // Prevent scaling when scrolling over the active video (lets you scroll YouTube menus)
+  // Prevent resize when scrolling over active YouTube menus
   window.addEventListener('wheel', (e) => {
-    if (hasVideo && playerBox.matches(':hover')) {
+    if (hasVideo && playerBox.matches(':hover') && videoShield.classList.contains('unshielded')) {
       return;
     }
     e.preventDefault();
@@ -189,15 +249,54 @@ iframe {
     queueScale(delta);
   }, { passive: false });
 
-  // 2. Double-Click Background to Toggle Theme
+  // 2. Click once on video to activate controls; reset shield on mouse leave
+  videoShield.addEventListener('click', () => {
+    videoShield.classList.add('unshielded');
+  });
+
+  playerBox.addEventListener('mouseleave', () => {
+    videoShield.classList.remove('unshielded');
+  });
+
+  // 3. Prevent Text Selection on Double Click & Double-Click Theme Toggle
+  window.addEventListener('mousedown', (e) => {
+    if (e.detail > 1) {
+      e.preventDefault(); // Prevents selection highlighting on rapid clicks
+    }
+  });
+
   window.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    window.getSelection()?.removeAllRanges();
     if (e.target.tagName !== 'IFRAME') {
       const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
     }
   });
 
-  // 3. Keep Window Focused for Instant Keyboard Commands (No Clicking Needed)
+  // 4. Smooth Mouse Fade-Out on Inactivity
+  function wakeCursor(e) {
+    customCursor.classList.remove('idle');
+    if (e && e.clientX !== undefined) {
+      customCursor.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+    }
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      customCursor.classList.add('idle');
+    }, 2000);
+  }
+
+  window.addEventListener('mousemove', (e) => {
+    wakeCursor(e);
+    if (!playerBox.matches(':hover') && document.activeElement === video) {
+      window.focus();
+    }
+  }, { passive: true });
+
+  window.addEventListener('keydown', wakeCursor, { passive: true });
+  wakeCursor();
+
+  // 5. Keep Window Focused for Instant Commands
   function reclaimFocus() {
     if (document.activeElement === video || document.activeElement !== document.body) {
       window.focus();
@@ -206,31 +305,8 @@ iframe {
 
   window.addEventListener('focus', reclaimFocus);
   window.addEventListener('mouseenter', reclaimFocus);
-  window.addEventListener('mousemove', () => {
-    wakeCursor();
-    // Reclaim focus as soon as cursor moves over background
-    if (!playerBox.matches(':hover') && document.activeElement === video) {
-      window.focus();
-    }
-  }, { passive: true });
 
-  // 4. Cursor Inactivity Handler
-  function wakeCursor() {
-    if (isIdle) {
-      isIdle = false;
-      document.body.classList.remove('idle');
-    }
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => {
-      isIdle = true;
-      document.body.classList.add('idle');
-    }, 2000);
-  }
-
-  window.addEventListener('keydown', wakeCursor, { passive: true });
-  wakeCursor();
-
-  // 5. Link & Timestamp Parsing
+  // 6. Link & Timestamp Parsing
   function extractId(url) {
     if (!url || typeof url !== 'string') return null;
     const match = url.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([a-zA-Z0-9_-]{11})/);
@@ -251,11 +327,12 @@ iframe {
     return sec;
   }
 
-  // 6. Playback Controller
+  // 7. Playback Controller
   function play(id, time = 0) {
     hasVideo = true;
     currentVideo = { id, time };
     cue.classList.add('hidden');
+    videoShield.classList.remove('unshielded');
 
     const timeParam = time ? `&start=${time}` : '';
     video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=1${timeParam}`;
@@ -270,12 +347,13 @@ iframe {
     hasVideo = false;
     currentVideo = null;
     video.src = '';
+    videoShield.classList.remove('unshielded');
     playerBox.classList.remove('playing');
     cue.classList.remove('hidden');
     window.focus();
   }
 
-  // 7. Instant Paste without prior click (⌘V / Ctrl+V)
+  // 8. Instant Paste (⌘V / Ctrl+V)
   window.addEventListener('paste', (e) => {
     const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
     const id = extractId(text);
@@ -284,11 +362,10 @@ iframe {
     }
   });
 
-  // 8. Instant Wipe without prior click (Backspace / Delete / Esc) & Undo (⌘Z)
+  // 9. Instant Wipe (Backspace / Delete / Esc) & Undo (⌘Z)
   window.addEventListener('keydown', (e) => {
     const isCmdOrCtrl = e.metaKey || e.ctrlKey;
 
-    // Undo: ⌘Z or Ctrl+Z
     if (isCmdOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
       if (!hasVideo && lastClearedVideo) {
         e.preventDefault();
@@ -297,7 +374,6 @@ iframe {
       return;
     }
 
-    // Wipe video: Backspace, Delete, or Escape
     if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Escape') {
       clearVideo();
     }
