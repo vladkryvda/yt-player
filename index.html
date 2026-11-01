@@ -206,15 +206,19 @@ iframe.active {
     playerBox.style.maxWidth = `${Math.round(currentWidth)}px`;
   }
 
+  // Prevent resize if scrolling occurs over the video box when a video is loaded
   window.addEventListener('wheel', (e) => {
+    if (hasVideo && playerBox.matches(':hover')) {
+      return;
+    }
     e.preventDefault();
     const sensitivity = e.ctrlKey ? 2.5 : 0.8;
     const delta = -e.deltaY * sensitivity;
     updateScale(delta);
   }, { passive: false });
 
-  // 2. Synchronous Theme Toggle on Background Click
-  window.addEventListener('click', (e) => {
+  // 2. Synchronous Theme Toggle on Double Click
+  window.addEventListener('dblclick', (e) => {
     if (e.target.tagName !== 'IFRAME') {
       const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
@@ -261,7 +265,6 @@ iframe.active {
     cue.classList.add('hidden');
 
     const timeParam = time ? `&start=${time}` : '';
-    // Unmuted, instant loading via youtube-nocookie
     video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=1${timeParam}`;
 
     video.classList.add('active');
