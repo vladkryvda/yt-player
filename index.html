@@ -71,17 +71,18 @@ body.idle, body.idle * {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-/* Video Scalable Box */
+/* Video Scalable Box with subpixel rendering */
 .player-box {
   position: relative;
-  width: 100%;
-  max-width: 940px;
+  width: 940px;
+  max-width: 94vw;
   aspect-ratio: 16 / 9;
   display: flex;
   align-items: center;
   justify-content: center;
   contain: layout style;
   transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Floating Rounded Frame for Video */
@@ -174,15 +175,9 @@ iframe {
   let idleTimer = null;
   let isIdle = false;
 
-  // 1. Direct 1:1 Responsive Scaling (Zero Inertia, Instant Tracking)
+  // 1. Direct 1:1 Smooth Subpixel Scaling (No Vibration, No Lag, No Inertia)
   let currentWidth = 940;
   const minWidth = 440;
-  let scaleRaf = null;
-
-  function applyScale() {
-    playerBox.style.maxWidth = `${Math.round(currentWidth)}px`;
-    scaleRaf = null;
-  }
 
   window.addEventListener('wheel', (e) => {
     if (hasVideo && playerBox.matches(':hover')) {
@@ -190,16 +185,13 @@ iframe {
     }
     e.preventDefault();
 
-    // Direct 1:1 input with zero friction / zero inertia
-    const sensitivity = e.ctrlKey ? 2.0 : 0.9;
+    // Direct 1:1 tracking without rounding jumps
+    const sensitivity = e.ctrlKey ? 1.8 : 0.85;
     const delta = -e.deltaY * sensitivity;
     const maxWidth = Math.min(1600, window.innerWidth * 0.94);
 
     currentWidth = Math.max(minWidth, Math.min(maxWidth, currentWidth + delta));
-
-    if (!scaleRaf) {
-      scaleRaf = requestAnimationFrame(applyScale);
-    }
+    playerBox.style.width = `${currentWidth}px`;
   }, { passive: false });
 
   // 2. Prevent selection on double-click & Toggle Theme
@@ -218,7 +210,7 @@ iframe {
     }
   });
 
-  // 3. Keep Window Focused for Instant Commands (No Clicking Needed)
+  // 3. Keep Window Focused for Instant Commands (No Prior Click Needed)
   function reclaimFocus() {
     if (document.activeElement === video || document.activeElement !== document.body) {
       window.focus();
@@ -347,7 +339,7 @@ iframe {
   (function init() {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-    playerBox.style.maxWidth = `${currentWidth}px`;
+    playerBox.style.width = `${currentWidth}px`;
     window.focus();
   })();
 </script>
