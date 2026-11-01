@@ -44,6 +44,7 @@ html, body {
   font-family: 'Geist Mono', monospace;
   -webkit-font-smoothing: antialiased;
   user-select: none;
+  -webkit-user-select: none;
   overflow: hidden;
   transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
               color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -60,7 +61,7 @@ body.idle, body.idle * {
   cursor: none !important;
 }
 
-/* Micro-Texture Film Grain (Eliminates plastic look) */
+/* Micro-Texture Film Grain */
 .grain {
   position: fixed;
   inset: 0;
@@ -105,7 +106,7 @@ body.idle, body.idle * {
   box-shadow: var(--video-shadow);
 }
 
-/* Minimal Living Breathing Cue (Pure Characters, No Backlight) */
+/* Minimal Living Breathing Cue */
 .cue {
   font-size: 16px;
   font-weight: 500;
@@ -212,9 +213,17 @@ iframe {
     queueScale(delta);
   }, { passive: false });
 
-  // 2. Double-Click Background to Toggle Theme
+  // 2. Prevent selection on double-click & Toggle Theme
+  window.addEventListener('mousedown', (e) => {
+    if (e.detail > 1) {
+      e.preventDefault(); // Prevents double-click text selection
+    }
+  });
+
   window.addEventListener('dblclick', (e) => {
     if (e.target.tagName !== 'IFRAME') {
+      const selection = window.getSelection();
+      if (selection) selection.removeAllRanges();
       const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
     }
@@ -306,9 +315,32 @@ iframe {
     }
   });
 
-  // 8. Instant Wipe (Backspace / Delete / Esc) & Undo (⌘Z)
+  // 8. Copy Current Video URL (⌘C / Ctrl+C)
+  window.addEventListener('copy', (e) => {
+    if (hasVideo && currentVideo) {
+      e.preventDefault();
+      const timeParam = currentVideo.time ? `?t=${currentVideo.time}` : '';
+      const url = `https://youtu.be/${currentVideo.id}${timeParam}`;
+      if (e.clipboardData) {
+        e.clipboardData.setData('text/plain', url);
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(url);
+      }
+    }
+  });
+
+  // 9. Instant Wipe (Backspace / Delete) & Undo (⌘Z)
   window.addEventListener('keydown', (e) => {
     const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+
+    // Copy handling fallback
+    if (isCmdOrCtrl && e.key.toLowerCase() === 'c') {
+      if (hasVideo && currentVideo && navigator.clipboard) {
+        const timeParam = currentVideo.time ? `?t=${currentVideo.time}` : '';
+        navigator.clipboard.writeText(`https://youtu.be/${currentVideo.id}${timeParam}`);
+      }
+      return;
+    }
 
     // Undo: ⌘Z or Ctrl+Z
     if (isCmdOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
@@ -319,8 +351,8 @@ iframe {
       return;
     }
 
-    // Wipe video: Backspace, Delete, or Escape
-    if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Escape') {
+    // Wipe video: Backspace or Delete only (Escape removed)
+    if (e.key === 'Backspace' || e.key === 'Delete') {
       clearVideo();
     }
   });
