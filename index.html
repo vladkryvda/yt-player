@@ -175,6 +175,35 @@ iframe {
   let idleTimer = null;
   let isIdle = false;
 
+  // Track playback state & current time for key commands
+  let isPlaying = false;
+  let currentTime = 0;
+
+  // Listen to messages from YouTube's iframe API
+  window.addEventListener('message', (e) => {
+    try {
+      const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+      if (data.event === 'infoDelivery') {
+        if (data.info && typeof data.info.playerState !== 'undefined') {
+          // 1 = playing, 2 = paused
+          isPlaying = (data.info.playerState === 1);
+        }
+        if (data.info && typeof data.info.currentTime !== 'undefined') {
+          currentTime = data.info.currentTime;
+        }
+      }
+    } catch {}
+  });
+
+  function sendYTCommand(func, args = []) {
+    if (!video.contentWindow) return;
+    video.contentWindow.postMessage(JSON.stringify({
+      event: 'command',
+      func: func,
+      args: args
+    }), '*');
+  }
+
   // 1. Direct 1:1 Smooth Subpixel Scaling (No Vibration, No Lag, No Inertia)
   let currentWidth = 940;
   const minWidth = 440;
@@ -185,7 +214,6 @@ iframe {
     }
     e.preventDefault();
 
-    // Direct 1:1 tracking without rounding jumps
     const sensitivity = e.ctrlKey ? 1.8 : 0.85;
     const delta = -e.deltaY * sensitivity;
     const maxWidth = Math.min(1600, window.innerWidth * 0.94);
@@ -266,11 +294,14 @@ iframe {
   // 6. Playback Controller
   function play(id, time = 0) {
     hasVideo = true;
+    isPlaying = true;
+    currentTime = time;
     currentVideo = { id, time };
     cue.classList.add('hidden');
 
     const timeParam = time ? `&start=${time}` : '';
-    video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=1${timeParam}`;
+    // enablejsapi=1 enables programmatic postMessage control for Space / Arrows
+    video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&enablejsapi=1&playsinline=1&rel=1${timeParam}`;
 
     playerBox.classList.add('playing');
     window.focus();
@@ -278,8 +309,9 @@ iframe {
 
   function clearVideo() {
     if (!hasVideo) return;
-    lastClearedVideo = { ...currentVideo };
+    lastClearedVideo = { id: currentVideo.id, time: Math.floor(currentTime) };
     hasVideo = false;
+    isPlaying = false;
     currentVideo = null;
     video.src = '';
     playerBox.classList.remove('playing');
@@ -296,32 +328,43 @@ iframe {
     }
   });
 
-  // 8. Copy Current Video URL (⌘C / Ctrl+C)
+  // 8. Copy Current Video URL with exact timestamp (⌘C / Ctrl+C)
+  function copyVideoUrl() {
+    if (hasVideo && currentVideo) {
+      const roundedTime = Math.floor(currentTime);
+      const timeParam = roundedTime > 0 ? `?t=${roundedTime}` : '';
+      const url = `https://youtu.be/${currentVideo.id}${timeParam}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url);
+      }
+    }
+  }
+
   window.addEventListener('copy', (e) => {
     if (hasVideo && currentVideo) {
       e.preventDefault();
-      const timeParam = currentVideo.time ? `?t=${currentVideo.time}` : '';
+      const roundedTime = Math.floor(currentTime);
+      const timeParam = roundedTime > 0 ? `?t=${roundedTime}` : '';
       const url = `https://youtu.be/${currentVideo.id}${timeParam}`;
       if (e.clipboardData) {
         e.clipboardData.setData('text/plain', url);
-      } else if (navigator.clipboard) {
-        navigator.clipboard.writeText(url);
+      } else {
+        copyVideoUrl();
       }
     }
   });
 
-  // 9. Instant Wipe (Backspace / Delete) & Undo (⌘Z)
+  // 9. Instant Key Commands: Space (Play/Pause), Arrows (Seek), ⌘C (Copy), ⌘Z (Undo), Backspace (Wipe)
   window.addEventListener('keydown', (e) => {
     const isCmdOrCtrl = e.metaKey || e.ctrlKey;
 
+    // ⌘C / Ctrl+C copy fallback
     if (isCmdOrCtrl && e.key.toLowerCase() === 'c') {
-      if (hasVideo && currentVideo && navigator.clipboard) {
-        const timeParam = currentVideo.time ? `?t=${currentVideo.time}` : '';
-        navigator.clipboard.writeText(`https://youtu.be/${currentVideo.id}${timeParam}`);
-      }
+      copyVideoUrl();
       return;
     }
 
+    // Undo: ⌘Z or Ctrl+Z
     if (isCmdOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
       if (!hasVideo && lastClearedVideo) {
         e.preventDefault();
@@ -330,6 +373,44 @@ iframe {
       return;
     }
 
+    // Space: Play / Pause toggle
+    if (e.code === 'Space' || e.key === ' ') {
+      if (hasVideo) {
+        e.preventDefault();
+        if (isPlaying) {
+          sendYTCommand('pauseVideo');
+          isPlaying = false;
+        } else {
+          sendYTCommand('playVideo');
+          isPlaying = true;
+        }
+      }
+      return;
+    }
+
+    // ArrowLeft: Rewind 5 seconds
+    if (e.key === 'ArrowLeft') {
+      if (hasVideo) {
+        e.preventDefault();
+        const targetTime = Math.max(0, currentTime - 5);
+        sendYTCommand('seekTo', [targetTime, true]);
+        currentTime = targetTime;
+      }
+      return;
+    }
+
+    // ArrowRight: Fast-forward 5 seconds
+    if (e.key === 'ArrowRight') {
+      if (hasVideo) {
+        e.preventDefault();
+        const targetTime = currentTime + 5;
+        sendYTCommand('seekTo', [targetTime, true]);
+        currentTime = targetTime;
+      }
+      return;
+    }
+
+    // Wipe video: Backspace or Delete
     if (e.key === 'Backspace' || e.key === 'Delete') {
       clearVideo();
     }
