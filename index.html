@@ -5,12 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Player</title>
 
-<!-- Preconnect to eliminate network delay -->
 <link rel="preconnect" href="https://www.youtube-nocookie.com">
 <link rel="dns-prefetch" href="https://www.youtube-nocookie.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
 *, *::before, *::after {
@@ -20,31 +19,26 @@
 }
 
 :root {
-  /* Japanese Washi (Unbleached Paper) */
+  /* Japanese Washi (Light) */
   --bg: #f4f1ea;
-  --surface: #f9f7f2;
-  --border: #dfd9ce;
-  --corner: #8c8578;
-  --text: #322e29;
-  --faint: #aba394;
-  --radius: 18px; /* Smooth corner curvature */
+  --text: #2b2824;
+  --faint: #9c9588;
+  --shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.14);
+  --radius: 18px;
 }
 
 [data-theme="dark"] {
-  /* Kuro-sumi / Yakisugi (Burnt Cedar & Charcoal) */
+  /* Kuro-sumi / Burnt Cedar (Dark) */
   --bg: #131211;
-  --surface: #181715;
-  --border: #262421;
-  --corner: #6e685f;
   --text: #ede8df;
-  --faint: #635e55;
+  --faint: #6e675b;
+  --shadow: 0 28px 70px -12px rgba(0, 0, 0, 0.7);
+  --radius: 18px;
 }
 
-/* Synchronized smooth transition without flash */
-html, body, .player-box, .corner, .cue {
-  transition: background-color 0.15s ease,
-              border-color 0.15s ease,
-              color 0.15s ease;
+html, body, .cue {
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html, body {
@@ -65,110 +59,58 @@ body {
   padding: 24px;
 }
 
-/* Auto-hide cursor on idle */
 body.idle, body.idle * {
   cursor: none !important;
 }
 
-/* Player Frame */
+/* Base Wrapper */
 .player-box {
   position: relative;
   width: 100%;
   max-width: 940px;
   aspect-ratio: 16 / 9;
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
   contain: layout style;
-  transform: translateZ(0); /* Hardware accelerated composite layer */
+  transform: translateZ(0);
 }
 
-/* Dynamic Collapse during playback */
-.player-box.playing {
-  border-color: transparent;
-  background-color: transparent;
-}
-
-/* Hardware-accelerated rounded clipping container for iframe & cue */
+/* Floating Rounded Frame for Video */
 .viewport {
   position: absolute;
   inset: 0;
   border-radius: var(--radius);
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: translateZ(0);
-  -webkit-mask-image: -webkit-radial-gradient(white, black); /* Eliminates Safari/Chrome corner pixel bleed */
-}
-
-/* Hairline Curved Corner Reticles */
-.corner {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  pointer-events: none;
-  transition: background-color 0.15s ease,
-              border-color 0.15s ease,
-              opacity 0.25s ease,
-              transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.player-box.playing .corner {
   opacity: 0;
-}
-
-.corner-tl {
-  top: -2px;
-  left: -2px;
-  border-top: 1px solid var(--corner);
-  border-left: 1px solid var(--corner);
-  border-top-left-radius: calc(var(--radius) + 2px);
-}
-
-.corner-tr {
-  top: -2px;
-  right: -2px;
-  border-top: 1px solid var(--corner);
-  border-right: 1px solid var(--corner);
-  border-top-right-radius: calc(var(--radius) + 2px);
-}
-
-.corner-bl {
-  bottom: -2px;
-  left: -2px;
-  border-bottom: 1px solid var(--corner);
-  border-left: 1px solid var(--corner);
-  border-bottom-left-radius: calc(var(--radius) + 2px);
-}
-
-.corner-br {
-  bottom: -2px;
-  right: -2px;
-  border-bottom: 1px solid var(--corner);
-  border-right: 1px solid var(--corner);
-  border-bottom-right-radius: calc(var(--radius) + 2px);
-}
-
-/* Shutter pulse on ⌘V / ⌘Z */
-.pulsing .corner-tl { transform: translate(-3px, -3px); }
-.pulsing .corner-tr { transform: translate(3px, -3px); }
-.pulsing .corner-bl { transform: translate(-3px, 3px); }
-.pulsing .corner-br { transform: translate(3px, 3px); }
-
-/* Minimal Cue */
-.cue {
-  color: var(--faint);
-  font-size: 11px;
-  letter-spacing: 0.12em;
   pointer-events: none;
+  transform: scale(0.97);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s ease;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+}
+
+.player-box.playing .viewport {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+  box-shadow: var(--shadow);
+}
+
+/* Pure Minimal Characters Only: No Box, No Border, No Background */
+.cue {
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  color: var(--faint);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .cue.hidden {
   opacity: 0;
+  transform: scale(0.9);
 }
 
 /* Video Frame */
@@ -179,29 +121,17 @@ iframe {
   height: 100%;
   border: none;
   border-radius: var(--radius);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
-}
-
-iframe.active {
-  opacity: 1;
-  pointer-events: auto;
 }
 </style>
 </head>
 <body>
 
 <div class="player-box" id="playerBox">
-  <!-- Corner Reticles -->
-  <div class="corner corner-tl"></div>
-  <div class="corner corner-tr"></div>
-  <div class="corner corner-bl"></div>
-  <div class="corner corner-br"></div>
+  <!-- Raw Symbols Only -->
+  <div class="cue" id="cue">⌘V</div>
 
-  <!-- Smooth Rounded Content Viewport -->
+  <!-- Rounded Video Canvas -->
   <div class="viewport">
-    <div class="cue" id="cue">⌘V</div>
     <iframe id="video" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
             allowfullscreen></iframe>
@@ -220,7 +150,7 @@ iframe.active {
   let idleTimer = null;
   let isIdle = false;
 
-  // 1. Dynamic Smooth Scale with requestAnimationFrame (Zero Lag / Low CPU)
+  // 1. Dynamic Scaling via requestAnimationFrame (Low CPU / 60-120fps)
   let currentWidth = 940;
   let targetWidth = 940;
   const minWidth = 440;
@@ -235,7 +165,6 @@ iframe.active {
       return;
     }
 
-    // High performance smooth damping (lerp)
     currentWidth += diff * 0.28;
     playerBox.style.maxWidth = `${Math.round(currentWidth)}px`;
     scaleRaf = requestAnimationFrame(updateScaleLoop);
@@ -249,7 +178,7 @@ iframe.active {
     }
   }
 
-  // Prevent resize when hovering over the video player (lets you scroll menus freely)
+  // Prevent scaling when scrolling over the active video (lets you scroll YouTube menus)
   window.addEventListener('wheel', (e) => {
     if (hasVideo && playerBox.matches(':hover')) {
       return;
@@ -260,7 +189,7 @@ iframe.active {
     queueScale(delta);
   }, { passive: false });
 
-  // 2. Synchronous Theme Toggle on Double Click
+  // 2. Double-Click Background to Toggle Theme
   window.addEventListener('dblclick', (e) => {
     if (e.target.tagName !== 'IFRAME') {
       const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
@@ -268,7 +197,24 @@ iframe.active {
     }
   });
 
-  // 3. Lightweight Cursor Inactivity Handler (No redundant DOM updates)
+  // 3. Keep Window Focused for Instant Keyboard Commands (No Clicking Needed)
+  function reclaimFocus() {
+    if (document.activeElement === video || document.activeElement !== document.body) {
+      window.focus();
+    }
+  }
+
+  window.addEventListener('focus', reclaimFocus);
+  window.addEventListener('mouseenter', reclaimFocus);
+  window.addEventListener('mousemove', () => {
+    wakeCursor();
+    // Reclaim focus as soon as cursor moves over background
+    if (!playerBox.matches(':hover') && document.activeElement === video) {
+      window.focus();
+    }
+  }, { passive: true });
+
+  // 4. Cursor Inactivity Handler
   function wakeCursor() {
     if (isIdle) {
       isIdle = false;
@@ -281,18 +227,18 @@ iframe.active {
     }, 2000);
   }
 
-  window.addEventListener('mousemove', wakeCursor, { passive: true });
   window.addEventListener('keydown', wakeCursor, { passive: true });
   wakeCursor();
 
-  // 4. Link & Timestamp Parsing
+  // 5. Link & Timestamp Parsing
   function extractId(url) {
-    if (!url) return null;
+    if (!url || typeof url !== 'string') return null;
     const match = url.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([a-zA-Z0-9_-]{11})/);
     return match ? match[1] : (/^[a-zA-Z0-9_-]{11}$/.test(url.trim()) ? url.trim() : null);
   }
 
   function extractStart(url) {
+    if (!url || typeof url !== 'string') return 0;
     const match = url.match(/[?&#](?:t|start)=([0-9hms]+)/i);
     if (!match) return 0;
     const t = match[1];
@@ -305,8 +251,8 @@ iframe.active {
     return sec;
   }
 
-  // 5. Playback
-  function play(id, time) {
+  // 6. Playback Controller
+  function play(id, time = 0) {
     hasVideo = true;
     currentVideo = { id, time };
     cue.classList.add('hidden');
@@ -314,8 +260,8 @@ iframe.active {
     const timeParam = time ? `&start=${time}` : '';
     video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=1${timeParam}`;
 
-    video.classList.add('active');
     playerBox.classList.add('playing');
+    window.focus();
   }
 
   function clearVideo() {
@@ -324,49 +270,45 @@ iframe.active {
     hasVideo = false;
     currentVideo = null;
     video.src = '';
-    video.classList.remove('active');
     playerBox.classList.remove('playing');
     cue.classList.remove('hidden');
+    window.focus();
   }
 
-  function triggerPulse() {
-    playerBox.classList.add('pulsing');
-    setTimeout(() => playerBox.classList.remove('pulsing'), 160);
-  }
-
-  // 6. Paste: ⌘V / Ctrl+V
+  // 7. Instant Paste without prior click (⌘V / Ctrl+V)
   window.addEventListener('paste', (e) => {
     const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
     const id = extractId(text);
     if (id) {
-      triggerPulse();
       play(id, extractStart(text));
     }
   });
 
-  // 7. Keyboard Controls: Esc/Backspace (Clear) & ⌘Z (Undo)
+  // 8. Instant Wipe without prior click (Backspace / Delete / Esc) & Undo (⌘Z)
   window.addEventListener('keydown', (e) => {
     const isCmdOrCtrl = e.metaKey || e.ctrlKey;
 
+    // Undo: ⌘Z or Ctrl+Z
     if (isCmdOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
       if (!hasVideo && lastClearedVideo) {
         e.preventDefault();
-        triggerPulse();
         play(lastClearedVideo.id, lastClearedVideo.time);
       }
       return;
     }
 
-    if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Delete') {
+    // Wipe video: Backspace, Delete, or Escape
+    if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Escape') {
       clearVideo();
     }
   });
 
-  // System Theme init
+  // Init
   (function init() {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
     playerBox.style.maxWidth = `${currentWidth}px`;
+    window.focus();
   })();
 </script>
 </body>
