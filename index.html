@@ -174,49 +174,38 @@ iframe {
   let idleTimer = null;
   let isIdle = false;
 
-  // 1. Smooth Scaling Loop via requestAnimationFrame (Low CPU / 60-120fps)
+  // 1. Direct 1:1 Responsive Scaling (Zero Inertia, Instant Tracking)
   let currentWidth = 940;
-  let targetWidth = 940;
   const minWidth = 440;
   let scaleRaf = null;
 
-  function updateScaleLoop() {
-    const diff = targetWidth - currentWidth;
-    if (Math.abs(diff) < 0.25) {
-      currentWidth = targetWidth;
-      playerBox.style.maxWidth = `${Math.round(currentWidth)}px`;
-      scaleRaf = null;
-      return;
-    }
-
-    currentWidth += diff * 0.28;
+  function applyScale() {
     playerBox.style.maxWidth = `${Math.round(currentWidth)}px`;
-    scaleRaf = requestAnimationFrame(updateScaleLoop);
+    scaleRaf = null;
   }
 
-  function queueScale(delta) {
-    const maxWidth = Math.min(1600, window.innerWidth * 0.94);
-    targetWidth = Math.max(minWidth, Math.min(maxWidth, targetWidth + delta));
-    if (!scaleRaf) {
-      scaleRaf = requestAnimationFrame(updateScaleLoop);
-    }
-  }
-
-  // Prevent resize when scrolling over video menus
   window.addEventListener('wheel', (e) => {
     if (hasVideo && playerBox.matches(':hover')) {
       return;
     }
     e.preventDefault();
-    const sensitivity = e.ctrlKey ? 2.5 : 0.8;
+
+    // Direct 1:1 input with zero friction / zero inertia
+    const sensitivity = e.ctrlKey ? 2.0 : 0.9;
     const delta = -e.deltaY * sensitivity;
-    queueScale(delta);
+    const maxWidth = Math.min(1600, window.innerWidth * 0.94);
+
+    currentWidth = Math.max(minWidth, Math.min(maxWidth, currentWidth + delta));
+
+    if (!scaleRaf) {
+      scaleRaf = requestAnimationFrame(applyScale);
+    }
   }, { passive: false });
 
   // 2. Prevent selection on double-click & Toggle Theme
   window.addEventListener('mousedown', (e) => {
     if (e.detail > 1) {
-      e.preventDefault(); // Prevents double-click text selection
+      e.preventDefault();
     }
   });
 
@@ -333,7 +322,6 @@ iframe {
   window.addEventListener('keydown', (e) => {
     const isCmdOrCtrl = e.metaKey || e.ctrlKey;
 
-    // Copy handling fallback
     if (isCmdOrCtrl && e.key.toLowerCase() === 'c') {
       if (hasVideo && currentVideo && navigator.clipboard) {
         const timeParam = currentVideo.time ? `?t=${currentVideo.time}` : '';
@@ -342,7 +330,6 @@ iframe {
       return;
     }
 
-    // Undo: ⌘Z or Ctrl+Z
     if (isCmdOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
       if (!hasVideo && lastClearedVideo) {
         e.preventDefault();
@@ -351,7 +338,6 @@ iframe {
       return;
     }
 
-    // Wipe video: Backspace or Delete only (Escape removed)
     if (e.key === 'Backspace' || e.key === 'Delete') {
       clearVideo();
     }
