@@ -16,12 +16,8 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-::selection {
-  background: transparent;
+  -webkit-user-select: none !important;
+  user-select: none !important;
 }
 
 :root {
@@ -50,7 +46,7 @@ html, body {
   font-family: 'Geist Mono', monospace;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
-  cursor: none; /* Replaced by smooth-fading cursor */
+  cursor: none; /* Replaced by the smooth fading cursor */
   transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
               color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -62,19 +58,22 @@ body {
   padding: 24px;
 }
 
-/* Smooth-Fading Mouse Cursor */
+/* Hardware-Accelerated Smooth Fading Pointer */
 .custom-cursor {
   position: fixed;
   top: 0;
   left: 0;
+  width: 18px;
+  height: 18px;
   pointer-events: none;
-  z-index: 99999;
+  z-index: 999999;
+  transform: translate3d(-100px, -100px, 0);
   opacity: 1;
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform, opacity;
 }
 
-.custom-cursor.idle {
+.custom-cursor.fading {
   opacity: 0;
 }
 
@@ -123,18 +122,6 @@ body {
   box-shadow: var(--video-shadow);
 }
 
-/* Shield to prevent hover controls until clicked once */
-.video-shield {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  background: transparent;
-}
-
-.video-shield.unshielded {
-  pointer-events: none;
-}
-
 /* Minimal Living Breathing Cue */
 .cue {
   font-size: 16px;
@@ -176,13 +163,14 @@ iframe {
 </head>
 <body>
 
-<!-- Smooth-fading hardware cursor -->
-<svg class="custom-cursor" id="customCursor" width="20" height="20" viewBox="0 0 24 24">
-  <path fill="var(--text)" stroke="var(--bg)" stroke-width="1.5" stroke-linejoin="round" d="M3 2l12 12h-6l4 8-2.5 1-4-8-3.5 3.5V2z"/>
-</svg>
-
 <!-- Tactile grain layer -->
 <div class="grain"></div>
+
+<!-- Smooth Fading Custom Cursor -->
+<svg class="custom-cursor" id="customCursor" viewBox="0 0 20 20">
+  <path fill="var(--text)" stroke="var(--bg)" stroke-width="1.2" stroke-linejoin="round" 
+        d="M 0,0 L 0,17 L 4.5,12.5 L 7.5,19 L 10,18 L 7,11.5 L 13,11.5 Z"/>
+</svg>
 
 <div class="player-box" id="playerBox">
   <!-- Breathing Hotkey Cue Only -->
@@ -190,7 +178,6 @@ iframe {
 
   <!-- Rounded Floating Video Viewport -->
   <div class="viewport">
-    <div class="video-shield" id="videoShield"></div>
     <iframe id="video" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
             allowfullscreen></iframe>
@@ -202,15 +189,46 @@ iframe {
   const playerBox = document.getElementById('playerBox');
   const video = document.getElementById('video');
   const cue = document.getElementById('cue');
-  const customCursor = document.getElementById('customCursor');
-  const videoShield = document.getElementById('videoShield');
+  const cursor = document.getElementById('customCursor');
 
   let hasVideo = false;
   let currentVideo = null;
   let lastClearedVideo = null;
   let idleTimer = null;
 
-  // 1. Smooth Scaling Loop via requestAnimationFrame (Low CPU / 60-120fps)
+  // 1. Double-Click Protection: Disables text selection completely on multiple clicks
+  window.addEventListener('mousedown', (e) => {
+    if (e.detail > 1) {
+      e.preventDefault(); // Prevents selection flash
+    }
+  });
+  window.addEventListener('selectstart', (e) => e.preventDefault());
+
+  // 2. Smooth Cursor Fade on Inactivity
+  function wakeCursor(e) {
+    if (e && e.clientX !== undefined) {
+      cursor.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+    }
+    
+    // Hide custom cursor over iframe so native player controls work cleanly
+    if (hasVideo && playerBox.matches(':hover')) {
+      cursor.style.display = 'none';
+    } else {
+      cursor.style.display = 'block';
+    }
+
+    cursor.classList.remove('fading');
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      cursor.classList.add('fading');
+    }, 2000); // Fades smoothly after 2 seconds
+  }
+
+  window.addEventListener('mousemove', wakeCursor, { passive: true });
+  window.addEventListener('mouseleave', () => cursor.classList.add('fading'));
+  wakeCursor();
+
+  // 3. Dynamic Smooth Scaling via requestAnimationFrame (Low CPU / 60-120fps)
   let currentWidth = 940;
   let targetWidth = 940;
   const minWidth = 440;
@@ -238,9 +256,9 @@ iframe {
     }
   }
 
-  // Prevent resize when scrolling over active YouTube menus
+  // Prevent resize when scrolling over video menus
   window.addEventListener('wheel', (e) => {
-    if (hasVideo && playerBox.matches(':hover') && videoShield.classList.contains('unshielded')) {
+    if (hasVideo && playerBox.matches(':hover')) {
       return;
     }
     e.preventDefault();
@@ -249,54 +267,15 @@ iframe {
     queueScale(delta);
   }, { passive: false });
 
-  // 2. Click once on video to activate controls; reset shield on mouse leave
-  videoShield.addEventListener('click', () => {
-    videoShield.classList.add('unshielded');
-  });
-
-  playerBox.addEventListener('mouseleave', () => {
-    videoShield.classList.remove('unshielded');
-  });
-
-  // 3. Prevent Text Selection on Double Click & Double-Click Theme Toggle
-  window.addEventListener('mousedown', (e) => {
-    if (e.detail > 1) {
-      e.preventDefault(); // Prevents selection highlighting on rapid clicks
-    }
-  });
-
+  // 4. Double-Click Background to Toggle Theme
   window.addEventListener('dblclick', (e) => {
-    e.preventDefault();
-    window.getSelection()?.removeAllRanges();
     if (e.target.tagName !== 'IFRAME') {
       const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
     }
   });
 
-  // 4. Smooth Mouse Fade-Out on Inactivity
-  function wakeCursor(e) {
-    customCursor.classList.remove('idle');
-    if (e && e.clientX !== undefined) {
-      customCursor.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
-    }
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => {
-      customCursor.classList.add('idle');
-    }, 2000);
-  }
-
-  window.addEventListener('mousemove', (e) => {
-    wakeCursor(e);
-    if (!playerBox.matches(':hover') && document.activeElement === video) {
-      window.focus();
-    }
-  }, { passive: true });
-
-  window.addEventListener('keydown', wakeCursor, { passive: true });
-  wakeCursor();
-
-  // 5. Keep Window Focused for Instant Commands
+  // 5. Keep Window Focused for Instant Commands (No Clicking Needed)
   function reclaimFocus() {
     if (document.activeElement === video || document.activeElement !== document.body) {
       window.focus();
@@ -305,6 +284,11 @@ iframe {
 
   window.addEventListener('focus', reclaimFocus);
   window.addEventListener('mouseenter', reclaimFocus);
+  window.addEventListener('mousemove', () => {
+    if (!playerBox.matches(':hover') && document.activeElement === video) {
+      window.focus();
+    }
+  }, { passive: true });
 
   // 6. Link & Timestamp Parsing
   function extractId(url) {
@@ -332,7 +316,6 @@ iframe {
     hasVideo = true;
     currentVideo = { id, time };
     cue.classList.add('hidden');
-    videoShield.classList.remove('unshielded');
 
     const timeParam = time ? `&start=${time}` : '';
     video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=1${timeParam}`;
@@ -347,7 +330,6 @@ iframe {
     hasVideo = false;
     currentVideo = null;
     video.src = '';
-    videoShield.classList.remove('unshielded');
     playerBox.classList.remove('playing');
     cue.classList.remove('hidden');
     window.focus();
