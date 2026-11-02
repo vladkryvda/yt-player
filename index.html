@@ -7,6 +7,8 @@
 
 <link rel="preconnect" href="https://www.youtube-nocookie.com">
 <link rel="dns-prefetch" href="https://www.youtube-nocookie.com">
+<link rel="preconnect" href="https://img.youtube.com">
+<link rel="dns-prefetch" href="https://img.youtube.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -19,11 +21,7 @@
 }
 
 :root {
-  /* iPhone X Light Liquid Watercolor */
   --bg: #f9f8f6;
-  --blob-1: rgba(255, 94, 125, 0.45);  /* Coral Rose */
-  --blob-2: rgba(72, 154, 255, 0.45);  /* Sky Cyan */
-  --blob-3: rgba(255, 196, 68, 0.40);  /* Warm Gold */
   --text: #1d1d1f;
   --cue-color: rgba(29, 29, 31, 0.7);
   --video-shadow: 0 32px 75px -12px rgba(0, 0, 0, 0.22);
@@ -31,14 +29,10 @@
 }
 
 [data-theme="dark"] {
-  /* iPhone X Launch OLED Palette: Pure Deep Black & Radiant Neon Fluid */
-  --bg: #000000;
-  --blob-1: #e61f63;  /* Vivid Magenta / Deep Rose */
-  --blob-2: #2450ff;  /* Electric Cobalt Blue */
-  --blob-3: #ff8c00;  /* Radiant Solar Amber / Teal Accent */
-  --text: #f5f5f7;
-  --cue-color: rgba(245, 245, 247, 0.75);
-  --video-shadow: 0 40px 90px -15px rgba(0, 0, 0, 0.9);
+  --bg: #060608;
+  --text: #ededf0;
+  --cue-color: rgba(237, 237, 240, 0.45);
+  --video-shadow: 0 30px 90px -15px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.05);
   --radius-video: 18px;
 }
 
@@ -67,99 +61,42 @@ body.idle, body.idle * {
 }
 
 /* ==========================================================
-   DYNAMIC IPHONE X LIQUID / CHROMATIC AMBIENT ENGINE
+   DYNAMIC VIDEO AMBILIGHT (ADAPTIVE GLOW)
    ========================================================== */
-.aurora-container {
+.ambilight {
   position: fixed;
   inset: -15%;
   width: 130%;
   height: 130%;
   pointer-events: none;
   z-index: 0;
-  overflow: hidden;
-  filter: blur(85px);
-  opacity: 0.85;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: blur(120px) saturate(180%);
+  opacity: 0;
   transform: translateZ(0);
+  will-change: opacity, background-image;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), background-image 0.4s ease;
 }
 
-[data-theme="dark"] .aurora-container {
-  opacity: 0.65;
+body.video-active .ambilight {
+  opacity: 0.55;
 }
 
-.blob {
-  position: absolute;
-  border-radius: 50%;
-  mix-blend-mode: screen;
-  will-change: transform;
+[data-theme="dark"] body.video-active .ambilight {
+  opacity: 0.35;
 }
 
-[data-theme="light"] .blob {
-  mix-blend-mode: multiply;
-}
-
-/* Blob 1: Magenta / Pink */
-.blob-1 {
-  top: 25%;
-  left: 20%;
-  width: 48vw;
-  height: 48vw;
-  max-width: 650px;
-  max-height: 650px;
-  background: radial-gradient(circle, var(--blob-1) 0%, transparent 68%);
-  animation: floatMorph1 22s ease-in-out infinite alternate;
-}
-
-/* Blob 2: Electric Cobalt Blue */
-.blob-2 {
-  bottom: 20%;
-  right: 18%;
-  width: 52vw;
-  height: 52vw;
-  max-width: 700px;
-  max-height: 700px;
-  background: radial-gradient(circle, var(--blob-2) 0%, transparent 70%);
-  animation: floatMorph2 26s ease-in-out infinite alternate;
-}
-
-/* Blob 3: Solar Amber / Teal */
-.blob-3 {
-  top: 40%;
-  left: 45%;
-  width: 44vw;
-  height: 44vw;
-  max-width: 600px;
-  max-height: 600px;
-  background: radial-gradient(circle, var(--blob-3) 0%, transparent 68%);
-  animation: floatMorph3 19s ease-in-out infinite alternate;
-}
-
-@keyframes floatMorph1 {
-  0% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
-  50% { transform: translate3d(12vw, 8vh, 0) scale(1.15) rotate(45deg); }
-  100% { transform: translate3d(-8vw, 15vh, 0) scale(0.92) rotate(-30deg); }
-}
-
-@keyframes floatMorph2 {
-  0% { transform: translate3d(0, 0, 0) scale(1.05) rotate(0deg); }
-  50% { transform: translate3d(-14vw, -10vh, 0) scale(0.88) rotate(-60deg); }
-  100% { transform: translate3d(10vw, -16vh, 0) scale(1.18) rotate(35deg); }
-}
-
-@keyframes floatMorph3 {
-  0% { transform: translate3d(0, 0, 0) scale(0.95); }
-  50% { transform: translate3d(-12vw, 12vh, 0) scale(1.12); }
-  100% { transform: translate3d(8vw, -8vh, 0) scale(1); }
-}
-
-/* Micro-Texture Film Grain */
+/* Micro-Texture Film Grain (Hardware-Accelerated Tile) */
 .grain {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.038;
+  opacity: 0.035;
   mix-blend-mode: overlay;
   z-index: 1;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
 }
 
 /* ==========================================================
@@ -219,11 +156,11 @@ body.idle, body.idle * {
 
 @keyframes breathe {
   0%, 100% {
-    opacity: 0.5;
+    opacity: 0.4;
     transform: scale(0.98);
   }
   50% {
-    opacity: 0.95;
+    opacity: 0.85;
     transform: scale(1.02);
   }
 }
@@ -241,15 +178,11 @@ iframe {
 </head>
 <body>
 
-<!-- Dynamic iPhone X OLED Color Aurora -->
-<div class="aurora-container">
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
-  <div class="blob blob-3"></div>
-</div>
+<!-- Real Adaptive Ambilight Layer -->
+<div class="ambilight" id="ambilight"></div>
 
-<!-- Tactile grain layer -->
-<div class="grain"></div>
+<!-- Lightweight grain layer -->
+<div class="grain" id="grain"></div>
 
 <div class="player-box" id="playerBox">
   <!-- Breathing Hotkey Cue Only -->
@@ -268,6 +201,7 @@ iframe {
   const playerBox = document.getElementById('playerBox');
   const video = document.getElementById('video');
   const cue = document.getElementById('cue');
+  const ambilight = document.getElementById('ambilight');
 
   let hasVideo = false;
   let currentVideo = null;
@@ -277,6 +211,44 @@ iframe {
 
   let isPlaying = false;
   let currentTime = 0;
+
+  // Generate a lightweight 64x64 noise texture once (avoids continuous SVG re-rasterization)
+  (function initGrain() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.createImageData(64, 64);
+    for (let i = 0; i < imgData.data.length; i += 4) {
+      const v = (Math.random() * 255) | 0;
+      imgData.data[i] = v;
+      imgData.data[i + 1] = v;
+      imgData.data[i + 2] = v;
+      imgData.data[i + 3] = 255;
+    }
+    ctx.putImageData(imgData, 0, 0);
+    const grainEl = document.getElementById('grain');
+    if (grainEl) {
+      grainEl.style.backgroundImage = `url(${canvas.toDataURL('image/png')})`;
+    }
+  })();
+
+  // Dynamically update ambilight from YouTube's video thumbnail
+  function setVideoAmbilight(id) {
+    const testImg = new Image();
+    testImg.onload = () => {
+      // YouTube returns a 120px wide placeholder when maxresdefault isn't available
+      if (testImg.naturalWidth === 120) {
+        ambilight.style.backgroundImage = `url('https://img.youtube.com/vi/${id}/hqdefault.jpg')`;
+      } else {
+        ambilight.style.backgroundImage = `url('https://img.youtube.com/vi/${id}/maxresdefault.jpg')`;
+      }
+    };
+    testImg.onerror = () => {
+      ambilight.style.backgroundImage = `url('https://img.youtube.com/vi/${id}/hqdefault.jpg')`;
+    };
+    testImg.src = `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
+  }
 
   // Listen to messages from YouTube's iframe API
   window.addEventListener('message', (e) => {
@@ -302,7 +274,7 @@ iframe {
     }), '*');
   }
 
-  // 1. Direct 1:1 Smooth Subpixel Scaling (No Vibration, No Lag, No Inertia)
+  // 1. Direct 1:1 Smooth Subpixel Scaling
   let currentWidth = 940;
   const minWidth = 440;
 
@@ -336,7 +308,7 @@ iframe {
     }
   });
 
-  // 3. Keep Window Focused for Instant Commands (No Prior Click Needed)
+  // 3. Keep Window Focused for Instant Commands
   function reclaimFocus() {
     if (document.activeElement === video || document.activeElement !== document.body) {
       window.focus();
@@ -401,6 +373,8 @@ iframe {
     video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&enablejsapi=1&playsinline=1&rel=1${timeParam}`;
 
     playerBox.classList.add('playing');
+    document.body.classList.add('video-active');
+    setVideoAmbilight(id);
     window.focus();
   }
 
@@ -412,6 +386,8 @@ iframe {
     currentVideo = null;
     video.src = '';
     playerBox.classList.remove('playing');
+    document.body.classList.remove('video-active');
+    ambilight.style.backgroundImage = 'none';
     cue.classList.remove('hidden');
     window.focus();
   }
