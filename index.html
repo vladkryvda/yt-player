@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://www.youtube-nocookie.com">
 <link rel="dns-prefetch" href="https://www.youtube-nocookie.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com">
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
@@ -19,20 +19,26 @@
 }
 
 :root {
-  /* Japanese Washi (Light) */
-  --bg: #f4f1ea;
-  --text: #2b2824;
-  --faint: #8f887b;
-  --video-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.16);
+  /* iPhone X Light Liquid Watercolor */
+  --bg: #f9f8f6;
+  --blob-1: rgba(255, 94, 125, 0.45);  /* Coral Rose */
+  --blob-2: rgba(72, 154, 255, 0.45);  /* Sky Cyan */
+  --blob-3: rgba(255, 196, 68, 0.40);  /* Warm Gold */
+  --text: #1d1d1f;
+  --cue-color: rgba(29, 29, 31, 0.7);
+  --video-shadow: 0 32px 75px -12px rgba(0, 0, 0, 0.22);
   --radius-video: 18px;
 }
 
 [data-theme="dark"] {
-  /* Kuro-sumi / Yakisugi Charcoal (Dark) */
-  --bg: #111110;
-  --text: #ede8df;
-  --faint: #6b6459;
-  --video-shadow: 0 28px 70px -14px rgba(0, 0, 0, 0.75);
+  /* iPhone X Launch OLED Palette: Pure Deep Black & Radiant Neon Fluid */
+  --bg: #000000;
+  --blob-1: #e61f63;  /* Vivid Magenta / Deep Rose */
+  --blob-2: #2450ff;  /* Electric Cobalt Blue */
+  --blob-3: #ff8c00;  /* Radiant Solar Amber / Teal Accent */
+  --text: #f5f5f7;
+  --cue-color: rgba(245, 245, 247, 0.75);
+  --video-shadow: 0 40px 90px -15px rgba(0, 0, 0, 0.9);
   --radius-video: 18px;
 }
 
@@ -46,8 +52,7 @@ html, body {
   user-select: none;
   -webkit-user-select: none;
   overflow: hidden;
-  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body {
@@ -61,17 +66,105 @@ body.idle, body.idle * {
   cursor: none !important;
 }
 
+/* ==========================================================
+   DYNAMIC IPHONE X LIQUID / CHROMATIC AMBIENT ENGINE
+   ========================================================== */
+.aurora-container {
+  position: fixed;
+  inset: -15%;
+  width: 130%;
+  height: 130%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  filter: blur(85px);
+  opacity: 0.85;
+  transform: translateZ(0);
+}
+
+[data-theme="dark"] .aurora-container {
+  opacity: 0.65;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+[data-theme="light"] .blob {
+  mix-blend-mode: multiply;
+}
+
+/* Blob 1: Magenta / Pink */
+.blob-1 {
+  top: 25%;
+  left: 20%;
+  width: 48vw;
+  height: 48vw;
+  max-width: 650px;
+  max-height: 650px;
+  background: radial-gradient(circle, var(--blob-1) 0%, transparent 68%);
+  animation: floatMorph1 22s ease-in-out infinite alternate;
+}
+
+/* Blob 2: Electric Cobalt Blue */
+.blob-2 {
+  bottom: 20%;
+  right: 18%;
+  width: 52vw;
+  height: 52vw;
+  max-width: 700px;
+  max-height: 700px;
+  background: radial-gradient(circle, var(--blob-2) 0%, transparent 70%);
+  animation: floatMorph2 26s ease-in-out infinite alternate;
+}
+
+/* Blob 3: Solar Amber / Teal */
+.blob-3 {
+  top: 40%;
+  left: 45%;
+  width: 44vw;
+  height: 44vw;
+  max-width: 600px;
+  max-height: 600px;
+  background: radial-gradient(circle, var(--blob-3) 0%, transparent 68%);
+  animation: floatMorph3 19s ease-in-out infinite alternate;
+}
+
+@keyframes floatMorph1 {
+  0% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  50% { transform: translate3d(12vw, 8vh, 0) scale(1.15) rotate(45deg); }
+  100% { transform: translate3d(-8vw, 15vh, 0) scale(0.92) rotate(-30deg); }
+}
+
+@keyframes floatMorph2 {
+  0% { transform: translate3d(0, 0, 0) scale(1.05) rotate(0deg); }
+  50% { transform: translate3d(-14vw, -10vh, 0) scale(0.88) rotate(-60deg); }
+  100% { transform: translate3d(10vw, -16vh, 0) scale(1.18) rotate(35deg); }
+}
+
+@keyframes floatMorph3 {
+  0% { transform: translate3d(0, 0, 0) scale(0.95); }
+  50% { transform: translate3d(-12vw, 12vh, 0) scale(1.12); }
+  100% { transform: translate3d(8vw, -8vh, 0) scale(1); }
+}
+
 /* Micro-Texture Film Grain */
 .grain {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.04;
+  opacity: 0.038;
   mix-blend-mode: overlay;
+  z-index: 1;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-/* Video Scalable Box with subpixel rendering */
+/* ==========================================================
+   VIDEO PLAYER & VIEWPORT
+   ========================================================== */
 .player-box {
   position: relative;
   width: 940px;
@@ -82,7 +175,7 @@ body.idle, body.idle * {
   justify-content: center;
   contain: layout style;
   transform: translateZ(0);
-  backface-visibility: hidden;
+  z-index: 2;
 }
 
 /* Floating Rounded Frame for Video */
@@ -107,12 +200,12 @@ body.idle, body.idle * {
   box-shadow: var(--video-shadow);
 }
 
-/* Minimal Living Breathing Cue */
+/* Minimalist Breathing Cue */
 .cue {
   font-size: 16px;
   font-weight: 500;
-  letter-spacing: 0.14em;
-  color: var(--faint);
+  letter-spacing: 0.16em;
+  color: var(--cue-color);
   pointer-events: none;
   animation: breathe 3.6s ease-in-out infinite;
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -126,11 +219,11 @@ body.idle, body.idle * {
 
 @keyframes breathe {
   0%, 100% {
-    opacity: 0.4;
+    opacity: 0.5;
     transform: scale(0.98);
   }
   50% {
-    opacity: 0.85;
+    opacity: 0.95;
     transform: scale(1.02);
   }
 }
@@ -147,6 +240,13 @@ iframe {
 </style>
 </head>
 <body>
+
+<!-- Dynamic iPhone X OLED Color Aurora -->
+<div class="aurora-container">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+</div>
 
 <!-- Tactile grain layer -->
 <div class="grain"></div>
@@ -175,7 +275,6 @@ iframe {
   let idleTimer = null;
   let isIdle = false;
 
-  // Track playback state & current time for key commands
   let isPlaying = false;
   let currentTime = 0;
 
@@ -185,7 +284,6 @@ iframe {
       const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
       if (data.event === 'infoDelivery') {
         if (data.info && typeof data.info.playerState !== 'undefined') {
-          // 1 = playing, 2 = paused
           isPlaying = (data.info.playerState === 1);
         }
         if (data.info && typeof data.info.currentTime !== 'undefined') {
@@ -300,7 +398,6 @@ iframe {
     cue.classList.add('hidden');
 
     const timeParam = time ? `&start=${time}` : '';
-    // enablejsapi=1 enables programmatic postMessage control for Space / Arrows
     video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&enablejsapi=1&playsinline=1&rel=1${timeParam}`;
 
     playerBox.classList.add('playing');
@@ -354,17 +451,15 @@ iframe {
     }
   });
 
-  // 9. Instant Key Commands: Space (Play/Pause), Arrows (Seek), ⌘C (Copy), ⌘Z (Undo), Backspace (Wipe)
+  // 9. Instant Key Commands: Space, Arrows, ⌘C, ⌘Z, Backspace
   window.addEventListener('keydown', (e) => {
     const isCmdOrCtrl = e.metaKey || e.ctrlKey;
 
-    // ⌘C / Ctrl+C copy fallback
     if (isCmdOrCtrl && e.key.toLowerCase() === 'c') {
       copyVideoUrl();
       return;
     }
 
-    // Undo: ⌘Z or Ctrl+Z
     if (isCmdOrCtrl && e.key.toLowerCase() === 'z' && !e.shiftKey) {
       if (!hasVideo && lastClearedVideo) {
         e.preventDefault();
@@ -373,7 +468,6 @@ iframe {
       return;
     }
 
-    // Space: Play / Pause toggle
     if (e.code === 'Space' || e.key === ' ') {
       if (hasVideo) {
         e.preventDefault();
@@ -388,7 +482,6 @@ iframe {
       return;
     }
 
-    // ArrowLeft: Rewind 5 seconds
     if (e.key === 'ArrowLeft') {
       if (hasVideo) {
         e.preventDefault();
@@ -399,7 +492,6 @@ iframe {
       return;
     }
 
-    // ArrowRight: Fast-forward 5 seconds
     if (e.key === 'ArrowRight') {
       if (hasVideo) {
         e.preventDefault();
@@ -410,7 +502,6 @@ iframe {
       return;
     }
 
-    // Wipe video: Backspace or Delete
     if (e.key === 'Backspace' || e.key === 'Delete') {
       clearVideo();
     }
