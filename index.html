@@ -31,7 +31,7 @@
 }
 
 [data-theme="dark"] {
-  /* Cinematic Theater OLED Palette: Deep, subtle, non-distracting ambient light */
+  /* Cinematic Theater OLED Palette */
   --bg: #060608;
   --blob-1: rgba(140, 24, 68, 0.35);   /* Deep muted wine */
   --blob-2: rgba(24, 48, 140, 0.38);   /* Midnight indigo / cobalt */
@@ -88,7 +88,6 @@ body.idle, body.idle * {
   filter: blur(115px);
 }
 
-/* Smooth theater dimming when video is actively playing */
 body.video-active .aurora-container {
   opacity: 0.45;
 }
@@ -108,7 +107,6 @@ body.video-active .aurora-container {
   mix-blend-mode: multiply;
 }
 
-/* Blob 1: Deep Burgundy / Pink */
 .blob-1 {
   top: 25%;
   left: 20%;
@@ -120,7 +118,6 @@ body.video-active .aurora-container {
   animation: floatMorph1 22s ease-in-out infinite alternate;
 }
 
-/* Blob 2: Midnight Indigo / Cobalt */
 .blob-2 {
   bottom: 20%;
   right: 18%;
@@ -132,7 +129,6 @@ body.video-active .aurora-container {
   animation: floatMorph2 26s ease-in-out infinite alternate;
 }
 
-/* Blob 3: Soft Amber / Ember */
 .blob-3 {
   top: 40%;
   left: 45%;
@@ -162,7 +158,6 @@ body.video-active .aurora-container {
   100% { transform: translate3d(8vw, -8vh, 0) scale(1); }
 }
 
-/* Micro-Texture Film Grain */
 .grain {
   position: fixed;
   inset: 0;
@@ -189,7 +184,6 @@ body.video-active .aurora-container {
   z-index: 2;
 }
 
-/* Floating Rounded Frame for Video */
 .viewport {
   position: absolute;
   inset: 0;
@@ -211,7 +205,6 @@ body.video-active .aurora-container {
   box-shadow: var(--video-shadow);
 }
 
-/* Minimalist Breathing Cue */
 .cue {
   font-size: 16px;
   font-weight: 500;
@@ -239,7 +232,6 @@ body.video-active .aurora-container {
   }
 }
 
-/* Video Frame */
 iframe {
   position: absolute;
   inset: 0;
@@ -252,21 +244,17 @@ iframe {
 </head>
 <body>
 
-<!-- Ambient Backlight -->
 <div class="aurora-container">
   <div class="blob blob-1"></div>
   <div class="blob blob-2"></div>
   <div class="blob blob-3"></div>
 </div>
 
-<!-- Tactile grain layer -->
 <div class="grain"></div>
 
 <div class="player-box" id="playerBox">
-  <!-- Breathing Hotkey Cue Only -->
   <div class="cue" id="cue">⌘V</div>
 
-  <!-- Rounded Floating Video Viewport -->
   <div class="viewport">
     <iframe id="video" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
@@ -275,6 +263,9 @@ iframe {
 </div>
 
 <script>
+  const STORAGE_KEY = 'minimal_player_video_state';
+  const THEME_KEY = 'minimal_player_theme';
+
   const html = document.documentElement;
   const playerBox = document.getElementById('playerBox');
   const video = document.getElementById('video');
@@ -288,29 +279,109 @@ iframe {
 
   let isPlaying = false;
   let currentTime = 0;
+  let lastTimeUpdate = 0;
+  let handshakeTimer = null;
+  let lastSavedSecond = -1;
+
+  // Real-time playback calculation
+  function getCurrentPlaybackTime() {
+    if (isPlaying && lastTimeUpdate > 0) {
+      const elapsed = (performance.now() - lastTimeUpdate) / 1000;
+      return currentTime + elapsed;
+    }
+    return currentTime;
+  }
+
+  // Storage Persistence
+  function saveToStorage() {
+    if (!hasVideo || !currentVideo) return;
+    const curr = Math.floor(getCurrentPlaybackTime());
+    if (curr === lastSavedSecond) return;
+    lastSavedSecond = curr;
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        id: currentVideo.id,
+        time: curr
+      }));
+    } catch {}
+  }
+
+  // Handshake & postMessage to YouTube IFrame
+  function sendYTCommand(func, args = []) {
+    if (!video.contentWindow) return;
+    try {
+      video.contentWindow.postMessage(JSON.stringify({
+        event: 'command',
+        func: func,
+        args: args
+      }), '*');
+    } catch {}
+  }
+
+  function sendListening() {
+    if (!video.contentWindow) return;
+    try {
+      video.contentWindow.postMessage(JSON.stringify({
+        event: 'listening',
+        id: 1,
+        channel: 'widget'
+      }), '*');
+    } catch {}
+  }
+
+  function startHandshake() {
+    stopHandshake();
+    sendListening();
+    handshakeTimer = setInterval(sendListening, 250);
+  }
+
+  function stopHandshake() {
+    if (handshakeTimer) {
+      clearInterval(handshakeTimer);
+      handshakeTimer = null;
+    }
+  }
+
+  video.addEventListener('load', () => {
+    if (hasVideo) startHandshake();
+  });
 
   // Listen to messages from YouTube's iframe API
   window.addEventListener('message', (e) => {
     try {
       const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-      if (data.event === 'infoDelivery') {
-        if (data.info && typeof data.info.playerState !== 'undefined') {
-          isPlaying = (data.info.playerState === 1);
+      if (!data) return;
+
+      if (data.event === 'initialDelivery' || data.event === 'infoDelivery') {
+        stopHandshake();
+        if (data.info) {
+          if (typeof data.info.playerState !== 'undefined') {
+            isPlaying = (data.info.playerState === 1);
+          }
+          if (typeof data.info.currentTime === 'number') {
+            currentTime = data.info.currentTime;
+            lastTimeUpdate = performance.now();
+            saveToStorage();
+          }
         }
-        if (data.info && typeof data.info.currentTime !== 'undefined') {
-          currentTime = data.info.currentTime;
+      } else if (data.event === 'onStateChange') {
+        if (typeof data.info === 'number') {
+          isPlaying = (data.info === 1);
         }
       }
     } catch {}
   });
 
-  function sendYTCommand(func, args = []) {
-    if (!video.contentWindow) return;
-    video.contentWindow.postMessage(JSON.stringify({
-      event: 'command',
-      func: func,
-      args: args
-    }), '*');
+  // Relative Seek (+/- 5 seconds)
+  function seekRelative(deltaSeconds) {
+    if (!hasVideo) return;
+    const current = getCurrentPlaybackTime();
+    const targetTime = Math.max(0, current + deltaSeconds);
+    currentTime = targetTime;
+    lastTimeUpdate = performance.now();
+    sendYTCommand('seekTo', [targetTime, true]);
+    saveToStorage();
   }
 
   // 1. Direct 1:1 Smooth Subpixel Scaling
@@ -344,6 +415,9 @@ iframe {
       if (selection) selection.removeAllRanges();
       const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
+      try {
+        localStorage.setItem(THEME_KEY, next);
+      } catch {}
     }
   });
 
@@ -405,23 +479,39 @@ iframe {
     hasVideo = true;
     isPlaying = true;
     currentTime = time;
+    lastTimeUpdate = performance.now();
     currentVideo = { id, time };
+    lastSavedSecond = -1;
     cue.classList.add('hidden');
 
-    const timeParam = time ? `&start=${time}` : '';
-    video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&enablejsapi=1&playsinline=1&rel=1${timeParam}`;
+    const roundedTime = Math.floor(time);
+    const timeParam = roundedTime > 0 ? `&start=${roundedTime}` : '';
+    const originParam = (window.location.origin && window.location.protocol.startsWith('http'))
+      ? `&origin=${encodeURIComponent(window.location.origin)}`
+      : '';
+
+    video.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&enablejsapi=1&playsinline=1&rel=1${timeParam}${originParam}`;
 
     playerBox.classList.add('playing');
     document.body.classList.add('video-active');
+    
+    startHandshake();
+    saveToStorage();
     window.focus();
   }
 
   function clearVideo() {
     if (!hasVideo) return;
-    lastClearedVideo = { id: currentVideo.id, time: Math.floor(currentTime) };
+    lastClearedVideo = { id: currentVideo.id, time: Math.floor(getCurrentPlaybackTime()) };
     hasVideo = false;
     isPlaying = false;
     currentVideo = null;
+    stopHandshake();
+
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
+
     video.src = '';
     playerBox.classList.remove('playing');
     document.body.classList.remove('video-active');
@@ -441,7 +531,7 @@ iframe {
   // 8. Copy Current Video URL with exact timestamp (⌘C / Ctrl+C)
   function copyVideoUrl() {
     if (hasVideo && currentVideo) {
-      const roundedTime = Math.floor(currentTime);
+      const roundedTime = Math.floor(getCurrentPlaybackTime());
       const timeParam = roundedTime > 0 ? `?t=${roundedTime}` : '';
       const url = `https://youtu.be/${currentVideo.id}${timeParam}`;
       if (navigator.clipboard) {
@@ -453,7 +543,7 @@ iframe {
   window.addEventListener('copy', (e) => {
     if (hasVideo && currentVideo) {
       e.preventDefault();
-      const roundedTime = Math.floor(currentTime);
+      const roundedTime = Math.floor(getCurrentPlaybackTime());
       const timeParam = roundedTime > 0 ? `?t=${roundedTime}` : '';
       const url = `https://youtu.be/${currentVideo.id}${timeParam}`;
       if (e.clipboardData) {
@@ -486,11 +576,15 @@ iframe {
         e.preventDefault();
         if (isPlaying) {
           sendYTCommand('pauseVideo');
+          currentTime = getCurrentPlaybackTime();
+          lastTimeUpdate = performance.now();
           isPlaying = false;
         } else {
           sendYTCommand('playVideo');
+          lastTimeUpdate = performance.now();
           isPlaying = true;
         }
+        saveToStorage();
       }
       return;
     }
@@ -498,9 +592,7 @@ iframe {
     if (e.key === 'ArrowLeft') {
       if (hasVideo) {
         e.preventDefault();
-        const targetTime = Math.max(0, currentTime - 5);
-        sendYTCommand('seekTo', [targetTime, true]);
-        currentTime = targetTime;
+        seekRelative(-5);
       }
       return;
     }
@@ -508,9 +600,7 @@ iframe {
     if (e.key === 'ArrowRight') {
       if (hasVideo) {
         e.preventDefault();
-        const targetTime = currentTime + 5;
-        sendYTCommand('seekTo', [targetTime, true]);
-        currentTime = targetTime;
+        seekRelative(5);
       }
       return;
     }
@@ -520,11 +610,38 @@ iframe {
     }
   });
 
-  // Init
+  window.addEventListener('beforeunload', () => {
+    saveToStorage();
+  });
+
+  // Init & Restore
   (function init() {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    try {
+      const savedTheme = localStorage.getItem(THEME_KEY);
+      if (savedTheme) {
+        html.setAttribute('data-theme', savedTheme);
+      } else {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      }
+    } catch {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    }
+
     playerBox.style.width = `${currentWidth}px`;
+
+    // Automatically restore video after page reload
+    try {
+      const savedData = localStorage.getItem(STORAGE_KEY);
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        if (parsed && parsed.id) {
+          play(parsed.id, parsed.time || 0);
+        }
+      }
+    } catch {}
+
     window.focus();
   })();
 </script>
